@@ -7,7 +7,7 @@
           <tn-icon name="left" size="44" color="#1c1c1e"></tn-icon>
         </view>
         <view class="nav-center">
-          <text class="nav-title">记一笔</text>
+          <text class="nav-title">{{ isEdit ? '编辑记录' : '记一笔' }}</text>
         </view>
         <view class="nav-right"></view>
       </view>
@@ -16,6 +16,7 @@
     <!-- 交易类型选择 -->
     <view class="type-selector">
       <view class="segmented">
+        <view class="seg-slider" :style="{ transform: `translateX(${typeIndex * 100}%)` }"></view>
         <view class="seg-item" :class="{ active: currentType === 'expense' }" @click="setType('expense')">
           <text>支出</text>
         </view>
@@ -115,14 +116,14 @@
           </view>
         </view>
         <view class="popup-action">
-          <ay-button block round @click="submitMock">记一笔</ay-button>
+          <ay-button block round @click="submitMock">{{ isEdit ? '保存修改' : '记一笔' }}</ay-button>
         </view>
       </view>
     </ay-popup>
 
     <!-- 页面底部按钮（键盘未展开时显示） -->
     <view class="bottom-action" v-show="!showKeyboard">
-      <ay-button block round @click="submitMock">记一笔</ay-button>
+      <ay-button block round @click="submitMock">{{ isEdit ? '保存修改' : '记一笔' }}</ay-button>
     </view>
 
     <!-- 分类选择弹层 -->
@@ -141,6 +142,12 @@
           </scroll-view>
           <scroll-view class="sub-category" scroll-y>
             <view class="sub-grid">
+              <view class="sub-item use-parent" @click="selectParentCategory">
+                <view class="sub-icon-wrapper" :style="{ backgroundColor: activeMainCategoryData?.color || '#ff9f0a' }">
+                  <tn-icon :name="activeMainCategoryData?.icon || 'eat'" size="44" color="#fff"></tn-icon>
+                </view>
+                <text>{{ activeMainCategory }}(全部)</text>
+              </view>
               <view class="sub-item" v-for="subCate in activeSubCategories" :key="subCate.name"
                 @click="selectSubCategory(subCate)">
                 <view class="sub-icon-wrapper" :style="{ backgroundColor: subCate.color }">
@@ -210,12 +217,20 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onShow, onLoad } from '@dcloudio/uni-app'
 import { personalCategoryApi } from '@/api/personal_category'
 import { personalAccountApi } from '@/api/personal_account'
 import { personalTransactionApi } from '@/api/personal_transaction'
+import { getParams } from '@/utils/ayao.js'
+
+const editId = ref(null)
+const isEdit = computed(() => !!editId.value)
 
 const currentType = ref('expense')
+const typeIndex = computed(() => {
+  const map = { expense: 0, income: 1, transfer: 2 }
+  return map[currentType.value] || 0
+})
 const amount = ref('0')
 const remark = ref('')
 
@@ -238,7 +253,15 @@ const activeSubCategories = computed(() => {
   return main ? main.subcategories : [];
 })
 
+const activeMainCategoryData = computed(() => {
+  const list = categories.value[currentType.value] || [];
+  return list.find(c => c.name === activeMainCategory.value) || null;
+})
+
+const dataLoaded = ref(false)
+
 const loadData = async () => {
+  if (dataLoaded.value) return
   try {
     const [catRes, accRes] = await Promise.all([
       personalCategoryApi.getAll(),
@@ -246,14 +269,6 @@ const loadData = async () => {
     ]);
     if (catRes.success) {
       categories.value = catRes.data;
-      // 设置默认选中
-      const firstMain = categories.value[currentType.value]?.[0];
-      if (firstMain) {
-        activeMainCategory.value = firstMain.name;
-        if (firstMain.subcategories?.length) {
-          selectedCategory.value = firstMain.subcategories[0];
-        }
-      }
     }
     if (accRes.success) {
       accounts.value = accRes.data.list;
@@ -262,12 +277,61 @@ const loadData = async () => {
         const retry = await personalAccountApi.getList();
         if (retry.success) accounts.value = retry.data.list;
       }
+    }
+
+    if (editId.value) {
+      const detailRes = await personalTransactionApi.getDetail(editId.value);
+      if (detailRes.success) {
+        const d = detailRes.data;
+        currentType.value = d.type;
+        amount.value = String(parseFloat(d.amount));
+        remark.value = d.remark || '';
+        if (d.date) {
+          const parts = d.date.split('-');
+          currentDate.value = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        }
+        if (d.category_id) {
+          const cid = Number(d.category_id);
+          const mainList = categories.value[d.type] || [];
+          for (const main of mainList) {
+            if (Number(main.id) === cid) {
+              activeMainCategory.value = main.name;
+              selectedCategory.value = { id: main.id, name: main.name, icon: main.icon, color: main.color };
+              break;
+            }
+            const sub = (main.subcategories || []).find(s => Number(s.id) === cid);
+            if (sub) {
+              activeMainCategory.value = main.name;
+              selectedCategory.value = sub;
+              break;
+            }
+          }
+        }
+        const acc = accounts.value.find(a => Number(a.id) === Number(d.account_id));
+        if (acc) selectedAccount.value = acc;
+      }
+    } else {
+      const firstMain = categories.value[currentType.value]?.[0];
+      if (firstMain) {
+        activeMainCategory.value = firstMain.name;
+        if (firstMain.subcategories?.length) {
+          selectedCategory.value = firstMain.subcategories[0];
+        }
+      }
       if (accounts.value.length) selectedAccount.value = accounts.value[0];
     }
+    dataLoaded.value = true;
   } catch (e) { /* 拦截器处理 */ }
 }
 
-onShow(() => { loadData(); })
+onLoad((options) => {
+  const params = getParams(options)
+  if (params?.id) {
+    editId.value = Number(params.id)
+    uni.setNavigationBarTitle({ title: '编辑记录' })
+  }
+  loadData()
+})
 
 const keypad = ref([
   [
@@ -390,6 +454,15 @@ const selectSubCategory = (subCategory) => {
   uni.vibrateShort();
 }
 
+const selectParentCategory = () => {
+  const data = activeMainCategoryData.value;
+  if (data) {
+    selectedCategory.value = { id: data.id, name: data.name, icon: data.icon, color: data.color };
+    showCategory.value = false;
+    uni.vibrateShort();
+  }
+}
+
 const selectAccount = (acc) => {
   selectedAccount.value = acc
   showAccount.value = false
@@ -411,17 +484,21 @@ const setDateTo = (type) => {
   uni.vibrateShort();
 }
 
+const submitting = ref(false)
+
 const submitMock = async () => {
+  if (submitting.value) return
   const numAmount = parseFloat(amount.value);
   if (!numAmount || numAmount <= 0) return uni.showToast({ title: '请输入金额', icon: 'none' });
   if (!selectedAccount.value.id) return uni.showToast({ title: '请选择账户', icon: 'none' });
 
+  submitting.value = true
   const d = currentDate.value;
   const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
   try {
-    await personalTransactionApi.create({
+    const payload = {
       type: currentType.value,
       amount: numAmount,
       category_id: selectedCategory.value.id || null,
@@ -429,10 +506,18 @@ const submitMock = async () => {
       date: dateStr,
       time: timeStr,
       remark: remark.value || '',
-    });
-    uni.showToast({ title: '记录成功', icon: 'success' });
+    };
+    if (editId.value) {
+      await personalTransactionApi.update(editId.value, payload);
+      uni.showToast({ title: '修改成功', icon: 'success' });
+    } else {
+      await personalTransactionApi.create(payload);
+      uni.showToast({ title: '记录成功', icon: 'success' });
+    }
     setTimeout(() => uni.navigateBack(), 800);
-  } catch (e) { /* 拦截器处理 */ }
+  } catch (e) {
+    submitting.value = false
+  }
 }
 </script>
 
@@ -479,41 +564,50 @@ const submitMock = async () => {
 }
 
 .type-selector {
-  padding: 0 30rpx 20rpx 30rpx;
+  padding: 10rpx 30rpx 30rpx 30rpx;
   background-color: #f6f6f6;
 }
 
 .segmented {
   display: flex;
+  position: relative;
   background: #fff;
-  padding: 6rpx;
+  padding: 0 8rpx;
   border-radius: 24rpx;
   box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
-  gap: 4rpx;
+}
+
+.seg-slider {
+  position: absolute;
+  top: 8rpx;
+  left: 8rpx;
+  width: calc((100% - 16rpx) / 3);
+  height: calc(100% - 16rpx);
+  background: linear-gradient(135deg, #ff6700 0%, #ff8f3d 100%);
+  border-radius: 18rpx;
+  box-shadow: 0 8rpx 20rpx rgba(255, 103, 0, 0.25);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
 }
 
 .seg-item {
   flex: 1;
   text-align: center;
-  padding: 20rpx 24rpx;
-  border-radius: 20rpx;
-  transition: all 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+  padding: 22rpx 24rpx;
+  border-radius: 18rpx;
+  position: relative;
+  z-index: 1;
 
   text {
     font-size: 30rpx;
     font-weight: 500;
     color: #8e8e93;
-    transition: color 0.25s ease;
+    transition: color 0.3s ease, font-weight 0.3s ease;
   }
 
-  &.active {
-    background: linear-gradient(135deg, #ff6700 0%, #ff8f3d 100%);
-    box-shadow: 0 8rpx 20rpx rgba(255, 103, 0, 0.25);
-
-    text {
-      color: #fff;
-      font-weight: 600;
-    }
+  &.active text {
+    color: #fff;
+    font-weight: 600;
   }
 
   &:active {

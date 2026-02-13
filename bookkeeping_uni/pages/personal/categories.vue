@@ -16,15 +16,14 @@
 		</NavbarWrapper>
 
 		<!-- 类型选择器 -->
-		<view class="type-selector-wrapper">
-			<view class="type-selector">
-				<view class="segmented">
-					<view class="seg-item" :class="{ active: currentType === 'expense' }" @click="currentType = 'expense'">
-						<text>支出</text>
-					</view>
-					<view class="seg-item" :class="{ active: currentType === 'income' }" @click="currentType = 'income'">
-						<text>收入</text>
-					</view>
+		<view class="type-selector">
+			<view class="segmented">
+				<view class="seg-slider" :style="{ transform: `translateX(${currentType === 'expense' ? 0 : 100}%)` }"></view>
+				<view class="seg-item" :class="{ active: currentType === 'expense' }" @click="currentType = 'expense'">
+					<text>支出</text>
+				</view>
+				<view class="seg-item" :class="{ active: currentType === 'income' }" @click="currentType = 'income'">
+					<text>收入</text>
 				</view>
 			</view>
 		</view>
@@ -241,46 +240,55 @@ onShow(() => { loadCategories(); });
 	}
 }
 
-.type-selector-wrapper {
-	padding: 20rpx 30rpx;
+.type-selector {
+	padding: 10rpx 30rpx 30rpx 30rpx;
 	background-color: #f6f6f6;
 }
 
-.type-selector {
+.segmented {
 	display: flex;
+	position: relative;
 	background: #fff;
-	padding: 6rpx;
+	padding: 8rpx;
 	border-radius: 24rpx;
 	box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+}
 
-	.segmented {
-		display: flex;
-		flex: 1;
-		gap: 4rpx;
+.seg-slider {
+	position: absolute;
+	top: 8rpx;
+	left: 8rpx;
+	width: calc((100% - 16rpx) / 2);
+	height: calc(100% - 16rpx);
+	background: linear-gradient(135deg, #ff6700 0%, #ff8f3d 100%);
+	border-radius: 18rpx;
+	box-shadow: 0 8rpx 20rpx rgba(255, 103, 0, 0.25);
+	transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+	z-index: 0;
+}
 
-		.seg-item {
-			flex: 1;
-			text-align: center;
-			padding: 20rpx 24rpx;
-			border-radius: 20rpx;
-			transition: all 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+.seg-item {
+	flex: 1;
+	text-align: center;
+	padding: 22rpx 24rpx;
+	border-radius: 18rpx;
+	position: relative;
+	z-index: 1;
 
-			text {
-				font-size: 30rpx;
-				font-weight: 500;
-				color: #8e8e93;
-			}
+	text {
+		font-size: 30rpx;
+		font-weight: 500;
+		color: #8e8e93;
+		transition: color 0.3s ease, font-weight 0.3s ease;
+	}
 
-			&.active {
-				background: linear-gradient(135deg, #ff6700 0%, #ff8f3d 100%);
-				box-shadow: 0 8rpx 20rpx rgba(255, 103, 0, 0.25);
+	&.active text {
+		color: #fff;
+		font-weight: 600;
+	}
 
-				text {
-					color: #fff;
-					font-weight: 600;
-				}
-			}
-		}
+	&:active {
+		transform: scale(0.98);
 	}
 }
 

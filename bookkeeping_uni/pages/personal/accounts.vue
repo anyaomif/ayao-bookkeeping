@@ -27,25 +27,34 @@
 
 		<!-- 账户列表 -->
 		<view class="accounts-list-section">
-			<tn-swipe-action>
-				<tn-swipe-action-item v-for="account in accounts" :key="account.id" :options="swipeOptions"
-					@click="handleSwipeClick($event, account.id)">
-					<view class="account-item">
-						<view class="item-left">
-							<view class="icon-wrapper" :style="{ backgroundColor: account.color }">
-								<tn-icon :name="account.icon" size="44" color="#fff"></tn-icon>
+			<view class="accounts-card">
+				<view class="swipe-wrapper" v-for="account in accounts" :key="account.id">
+					<view class="swipe-content" :class="{ 'no-transition': isDragging }" :style="{ transform: `translateX(${getSwipeX(account.id)}rpx)` }"
+						@touchstart="onSwipeStart($event, account)"
+						@touchmove="onSwipeMove($event, account)"
+						@touchend="onSwipeEnd(account)">
+						<view class="account-item">
+							<view class="item-left">
+								<view class="icon-wrapper" :style="{ backgroundColor: account.color }">
+									<tn-icon :name="account.icon" size="44" color="#fff"></tn-icon>
+								</view>
+								<view class="item-details">
+									<text class="account-name">{{ account.name }}</text>
+									<text class="account-balance">余额 ¥{{ formatAmount(account.balance, null) }}</text>
+								</view>
 							</view>
-							<view class="item-details">
-								<text class="account-name">{{ account.name }}</text>
-								<text class="account-balance">余额 ¥{{ formatAmount(account.balance, null) }}</text>
-							</view>
-						</view>
-						<view class="item-right">
-							<!-- 可以放置拖拽排序等图标 -->
 						</view>
 					</view>
-				</tn-swipe-action-item>
-			</tn-swipe-action>
+					<view class="swipe-actions">
+						<view class="action-btn edit-btn" @click="openAccountPopup('edit', account)">
+							<tn-icon name="edit" size="36" color="#fff"></tn-icon>
+						</view>
+						<view class="action-btn delete-btn" @click="confirmDelete(account)">
+							<tn-icon name="delete" size="36" color="#fff"></tn-icon>
+						</view>
+					</view>
+				</view>
+			</view>
 		</view>
 
 		<!-- 添加/编辑账户弹层 -->
@@ -92,7 +101,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, reactive } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { personalAccountApi } from '@/api/personal_account';
 
@@ -108,10 +117,54 @@ const colorOptions = ref(['#ff6700', '#007aff', '#34c759', '#ff9f0a', '#af52de',
 
 const accounts = ref([]);
 
-const swipeOptions = ref([
-	{ text: '编辑', style: { backgroundColor: '#007aff' } },
-	{ text: '删除', style: { backgroundColor: '#ff3b30' } },
-]);
+// 滑动手势
+const SWIPE_OPEN = -220;
+const swipeState = reactive({});
+const isDragging = ref(false);
+let swipeStartX = 0;
+let swipeStartY = 0;
+let swipeLocked = false;
+let currentSwipeId = null;
+
+const getSwipeX = (id) => swipeState[id] || 0;
+
+const closeAllSwipe = () => {
+	Object.keys(swipeState).forEach(k => { swipeState[k] = 0; });
+	currentSwipeId = null;
+};
+
+const onSwipeStart = (e, item) => {
+	swipeStartX = e.touches[0].clientX;
+	swipeStartY = e.touches[0].clientY;
+	swipeLocked = false;
+	isDragging.value = true;
+	if (currentSwipeId && currentSwipeId !== item.id) {
+		swipeState[currentSwipeId] = 0;
+	}
+	currentSwipeId = item.id;
+};
+
+const onSwipeMove = (e, item) => {
+	const dx = e.touches[0].clientX - swipeStartX;
+	const dy = e.touches[0].clientY - swipeStartY;
+	if (!swipeLocked && Math.abs(dy) > Math.abs(dx)) {
+		swipeLocked = true;
+	}
+	if (swipeLocked) return;
+	let x = (swipeState[item.id] || 0) + dx * 2;
+	if (x > 0) x = 0;
+	if (x < SWIPE_OPEN) x = SWIPE_OPEN;
+	swipeState[item.id] = x;
+	swipeStartX = e.touches[0].clientX;
+	swipeStartY = e.touches[0].clientY;
+};
+
+const onSwipeEnd = (item) => {
+	isDragging.value = false;
+	if (swipeLocked) return;
+	const x = swipeState[item.id] || 0;
+	swipeState[item.id] = x < SWIPE_OPEN / 2 ? SWIPE_OPEN : 0;
+};
 
 const totalAssets = computed(() => accounts.value.reduce((total, acc) => total + Number(acc.balance), 0));
 
@@ -135,6 +188,7 @@ const loadAccounts = async () => {
 const goBack = () => uni.navigateBack();
 
 const openAccountPopup = (mode = 'add', account = null) => {
+	closeAllSwipe();
 	popupMode.value = mode;
 	if (mode === 'add') {
 		accountForm.value = { id: null, name: '', balance: '', icon: 'bankcard', color: '#ff6700' };
@@ -158,32 +212,25 @@ const saveAccount = async () => {
 		uni.showToast({ title: popupMode.value === 'add' ? '添加成功' : '编辑成功', icon: 'none' });
 		showPopup.value = false;
 		loadAccounts();
-	} catch (e) {
-		// 错误已由 request 拦截器处理
-	}
+	} catch (e) { /* 拦截器处理 */ }
 };
 
-const handleSwipeClick = (event, id) => {
-	const accountToEdit = accounts.value.find(a => a.id === id);
-	if (!accountToEdit) return;
-
-	if (event.index === 0) {
-		openAccountPopup('edit', accountToEdit);
-	} else {
-		uni.showModal({
-			title: '确认删除',
-			content: `确定要删除账户 "${accountToEdit.name}" 吗？`,
-			success: async (res) => {
-				if (res.confirm) {
-					try {
-						await personalAccountApi.delete(id);
-						uni.showToast({ title: '删除成功', icon: 'none' });
-						loadAccounts();
-					} catch (e) { /* 拦截器处理 */ }
-				}
+const confirmDelete = (account) => {
+	closeAllSwipe();
+	uni.showModal({
+		title: '确认删除',
+		content: `确定要删除账户 "${account.name}" 吗？`,
+		confirmColor: '#ff3b30',
+		success: async (res) => {
+			if (res.confirm) {
+				try {
+					await personalAccountApi.delete(account.id);
+					uni.showToast({ title: '删除成功', icon: 'none' });
+					loadAccounts();
+				} catch (e) { /* 拦截器处理 */ }
 			}
-		});
-	}
+		}
+	});
 };
 
 onShow(() => { loadAccounts(); });
@@ -249,16 +296,52 @@ onShow(() => { loadAccounts(); });
 .accounts-list-section {
 	padding: 0 30rpx;
 	background-color: #f6f6f6;
+}
 
-	::v-deep .tn-swipe-action {
-		border-radius: 24rpx;
-		overflow: hidden;
-		box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
-	}
+.accounts-card {
+	border-radius: 24rpx;
+	overflow: hidden;
+	box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+	background: #fff;
+}
 
-	::v-deep .tn-swipe-action-item__right__button {
-		padding: 0 40rpx !important;
-	}
+.swipe-wrapper {
+	position: relative;
+	overflow: hidden;
+	&:not(:last-child) { border-bottom: 1rpx solid #f5f5f5; }
+}
+
+.swipe-content {
+	position: relative;
+	z-index: 1;
+	background: #fff;
+	transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+	&.no-transition { transition: none; }
+}
+
+.swipe-actions {
+	position: absolute;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	width: 220rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 20rpx;
+	z-index: 0;
+}
+
+.action-btn {
+	width: 72rpx;
+	height: 72rpx;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	&.edit-btn { background-color: #ff6700; }
+	&.delete-btn { background-color: #ff3b30; }
+	&:active { opacity: 0.8; transform: scale(0.92); }
 }
 
 .account-item {

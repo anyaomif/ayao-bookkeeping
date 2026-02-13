@@ -145,6 +145,9 @@
 							this.showContent = true
 							setTimeout(() => {
 								this.isAnimating = false
+								if (this._pendingClose) {
+									this.close()
+								}
 							}, this.duration)
 						}, 50)
 					}, 0)
@@ -152,7 +155,12 @@
 			},
 			// 关闭弹窗
 			close(isDrag = false) {
-				if (this.isAnimating && !isDrag) return
+				if (this.isAnimating && !isDrag) {
+					// 外部直接改 v-model 时仍需关闭，标记待关闭
+					this._pendingClose = true
+					return
+				}
+				this._pendingClose = false
 				
 				this.isAnimating = true
 				

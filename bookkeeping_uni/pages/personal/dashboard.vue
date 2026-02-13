@@ -8,7 +8,6 @@
 				</view>
 				<view class="month-selector" @click="showMonthPicker = true">
 					<text class="month-text">{{ currentYear }}年{{ currentMonth }}月</text>
-					<tn-icon name="down" size="32" color="#333"></tn-icon>
 				</view>
 				<view class="action-icons">
 					<tn-icon name="search" size="44"></tn-icon>
@@ -36,7 +35,7 @@
 		<!-- 记一笔 按钮 -->
 		<view class="add-transaction-btn-wrapper">
 			<view class="add-transaction-btn" @click="addTransaction">
-				<tn-icon name="add" size="44" color="#333"></tn-icon>
+				<tn-icon name="add" size="44" color="#fff"></tn-icon>
 				<text>记一笔</text>
 			</view>
 		</view>
@@ -50,16 +49,39 @@
 							<text class="date-label">{{ group.date }}</text>
 							<text class="summary">支出: ¥{{ formatAmount(group.summary.expense) }} 收入: ¥{{ formatAmount(group.summary.income) }}</text>
 						</view>
+						<view class="swipe-tip" v-if="index === 0 && showSwipeTip" @click.stop>
+							<text class="tip-text">← 左滑记录可编辑或删除</text>
+							<view class="tip-close" @click="dismissSwipeTip">
+								<tn-icon name="close" size="28" color="#ff6700"></tn-icon>
+							</view>
+						</view>
 						<view class="group-items">
-							<view class="transaction-item" v-for="item in group.items" :key="item.id">
-								<view class="icon-wrapper" :style="{ backgroundColor: item.category.color }">
-									<tn-icon :name="item.category.icon" size="40" color="#fff"></tn-icon>
-								</view>
-								<view class="item-details">
+							<view class="swipe-wrapper" v-for="item in group.items" :key="item.id">
+								<view class="item-fixed-left">
+									<view class="icon-wrapper" :style="{ backgroundColor: item.category.color }">
+										<tn-icon :name="item.category.icon" size="40" color="#fff"></tn-icon>
+									</view>
 									<text class="category-name">{{ item.category.name }}</text>
-									<text class="notes" v-if="item.notes">{{ item.notes }}</text>
 								</view>
-								<text class="amount" :class="item.type">{{ formatAmount(item.amount, item.type) }}</text>
+								<view class="swipe-content" :class="{ 'no-transition': isDragging }" :style="{ transform: `translateX(${getSwipeX(item.id)}rpx)` }"
+									@touchstart="onSwipeStart($event, item)"
+									@touchmove="onSwipeMove($event, item)"
+									@touchend="onSwipeEnd(item)">
+									<view class="transaction-item">
+										<view class="item-details">
+											<text class="notes" v-if="item.notes">{{ item.notes }}</text>
+										</view>
+										<text class="amount" :class="item.type">{{ formatAmount(item.amount, item.type) }}</text>
+									</view>
+								</view>
+								<view class="swipe-actions">
+									<view class="action-btn edit-btn" @click="goToEdit(item.id)">
+										<tn-icon name="edit" size="36" color="#fff"></tn-icon>
+									</view>
+									<view class="action-btn delete-btn" @click="confirmDelete(item.id)">
+										<tn-icon name="delete" size="36" color="#fff"></tn-icon>
+									</view>
+								</view>
 							</view>
 						</view>
 					</view>
@@ -119,7 +141,7 @@
 </template>
 
 <script setup>
-	import { ref, computed } from 'vue';
+	import { ref, computed, reactive } from 'vue';
 	import { onShow } from '@dcloudio/uni-app';
 	import { personalTransactionApi } from '@/api/personal_transaction';
 
@@ -131,6 +153,22 @@
 
 	const summaryData = ref({ expense: 0, income: 0, balance: 0 });
 	const mockTransactions = ref([]);
+
+	// 左滑提示
+	const showSwipeTip = ref(false);
+	const initSwipeTip = () => {
+		const dismissCount = uni.getStorageSync('swipe_tip_dismiss_count') || 0;
+		if (dismissCount >= 3) {
+			showSwipeTip.value = false;
+		} else {
+			showSwipeTip.value = true;
+		}
+	};
+	const dismissSwipeTip = () => {
+		showSwipeTip.value = false;
+		const count = (uni.getStorageSync('swipe_tip_dismiss_count') || 0) + 1;
+		uni.setStorageSync('swipe_tip_dismiss_count', count);
+	};
 
 	const loadData = async () => {
 		try {
@@ -197,6 +235,77 @@
 		uni.navigateTo({ url: '/pages/personal/form' })
 	};
 
+	const goToEdit = (id) => {
+		closeAllSwipe();
+		uni.navigateTo({ url: `/pages/personal/form?params=${encodeURIComponent(JSON.stringify({ id }))}` })
+	};
+
+	// 滑动手势相关
+	const SWIPE_OPEN = -220;
+	const swipeState = reactive({});
+	const isDragging = ref(false);
+	let swipeStartX = 0;
+	let swipeStartY = 0;
+	let swipeLocked = false;
+	let currentSwipeId = null;
+
+	const getSwipeX = (id) => swipeState[id] || 0;
+
+	const closeAllSwipe = () => {
+		Object.keys(swipeState).forEach(k => { swipeState[k] = 0; });
+		currentSwipeId = null;
+	};
+
+	const onSwipeStart = (e, item) => {
+		swipeStartX = e.touches[0].clientX;
+		swipeStartY = e.touches[0].clientY;
+		swipeLocked = false;
+		isDragging.value = true;
+		if (currentSwipeId && currentSwipeId !== item.id) {
+			swipeState[currentSwipeId] = 0;
+		}
+		currentSwipeId = item.id;
+	};
+
+	const onSwipeMove = (e, item) => {
+		const dx = e.touches[0].clientX - swipeStartX;
+		const dy = e.touches[0].clientY - swipeStartY;
+		if (!swipeLocked && Math.abs(dy) > Math.abs(dx)) {
+			swipeLocked = true;
+		}
+		if (swipeLocked) return;
+		let x = (swipeState[item.id] || 0) + dx * 2;
+		if (x > 0) x = 0;
+		if (x < SWIPE_OPEN) x = SWIPE_OPEN;
+		swipeState[item.id] = x;
+		swipeStartX = e.touches[0].clientX;
+		swipeStartY = e.touches[0].clientY;
+	};
+
+	const onSwipeEnd = (item) => {
+		isDragging.value = false;
+		if (swipeLocked) return;
+		const x = swipeState[item.id] || 0;
+		swipeState[item.id] = x < SWIPE_OPEN / 2 ? SWIPE_OPEN : 0;
+	};
+
+	const confirmDelete = (id) => {
+		uni.showModal({
+			title: '确认删除',
+			content: '删除后无法恢复，确定要删除这条记录吗？',
+			confirmColor: '#ff3b30',
+			success: async (res) => {
+				if (res.confirm) {
+					try {
+						await personalTransactionApi.delete(id);
+						uni.showToast({ title: '删除成功', icon: 'success' });
+						loadData();
+					} catch (e) { /* 拦截器处理 */ }
+				}
+			}
+		});
+	};
+
 	const selectMonth = (m) => {
 		currentYear.value = pickerYear.value;
 		currentMonth.value = m;
@@ -209,7 +318,7 @@
 		uni.navigateTo({ url });
 	};
 
-	onShow(() => { loadData(); });
+	onShow(() => { loadData(); initSwipeTip(); });
 </script>
 
 <style lang="scss" scoped>
@@ -217,6 +326,7 @@
 		background-color: #F8F8F8;
 		min-height: 100vh;
 		padding-bottom: 160rpx;
+		box-sizing: border-box;
 	}
 
 	.custom-navbar {
@@ -230,9 +340,11 @@
 	}
 
 	.month-selector {
-		display: flex; align-items: center; font-size: 32rpx;
-		font-weight: 500; color: #333;
-		.month-text { margin-right: 8rpx; }
+		display: flex; align-items: center;
+		background-color: #ff6700;
+		border-radius: 32rpx;
+		padding: 8rpx 28rpx;
+		.month-text { font-size: 28rpx; font-weight: 500; color: #fff; }
 	}
 
 	.action-icons { display: flex; gap: 40rpx; }
@@ -307,10 +419,10 @@
 		justify-content: center;
 		gap: 16rpx;
 		height: 96rpx;
-		background-color: #fff2e8;
+		background-color: #ff6700;
 		border-radius: 24rpx;
 		font-size: 32rpx;
-		color: #ff6700;
+		color: #fff;
 		font-weight: 500;
 		transition: all 0.2s ease-out;
 		
@@ -333,6 +445,33 @@
 		.date-label { font-size: 30rpx; font-weight: 500; color: #333; }
 		.summary { font-size: 26rpx; color: #8e8e93; }
 	}
+
+	.swipe-tip {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		background: #fff2e8;
+		border-radius: 16rpx;
+		padding: 8rpx 20rpx;
+		margin-bottom: 16rpx;
+
+		.tip-text {
+			font-size: 24rpx;
+			color: #ff6700;
+		}
+
+		.tip-close {
+			width: 40rpx;
+			height: 40rpx;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			border-radius: 50%;
+			background: rgba(255, 103, 0, 0.1);
+			flex-shrink: 0;
+			&:active { background: rgba(255, 103, 0, 0.2); }
+		}
+	}
 	
 	.group-items {
 		background: #fff;
@@ -340,21 +479,77 @@
 		box-shadow: 0 4rpx 24rpx rgba(0,0,0,0.06);
 		overflow: hidden;
 	}
+
+	.swipe-wrapper {
+		position: relative;
+		overflow: hidden;
+		display: flex;
+		align-items: center;
+		min-height: 128rpx;
+		&:not(:last-child) { border-bottom: 1rpx solid #f5f5f5; }
+	}
+
+	.item-fixed-left {
+		display: flex;
+		align-items: center;
+		gap: 16rpx;
+		padding-left: 24rpx;
+		position: relative;
+		z-index: 2;
+		flex-shrink: 0;
+
+		.icon-wrapper {
+			width: 80rpx;
+			height: 80rpx;
+			border-radius: 50%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+
+		.category-name { font-size: 30rpx; color: #333; white-space: nowrap; }
+	}
+
+	.swipe-content {
+		flex: 1;
+		position: relative;
+		z-index: 1;
+		background: #fff;
+		transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+		&.no-transition { transition: none; }
+	}
+
+	.swipe-actions {
+		position: absolute;
+		right: 0;
+		top: 0;
+		bottom: 0;
+		width: 220rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 20rpx;
+		z-index: 0;
+	}
+
+	.action-btn {
+		width: 72rpx;
+		height: 72rpx;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		&.edit-btn { background-color: #ff6700; }
+		&.delete-btn { background-color: #ff3b30; }
+		&:active { opacity: 0.8; transform: scale(0.92); }
+	}
 	
 	.transaction-item {
 		display: flex; align-items: center;
-		padding: 24rpx;
-		&:not(:last-child) { border-bottom: 1rpx solid #f5f5f5; }
-
-		.icon-wrapper {
-			width: 80rpx; height: 80rpx; border-radius: 50%;
-			display: flex; justify-content: center; align-items: center;
-			margin-right: 24rpx;
-		}
+		padding: 24rpx 24rpx 24rpx 16rpx;
 
 		.item-details {
 			flex: 1; display: flex; flex-direction: column; gap: 4rpx;
-			.category-name { font-size: 30rpx; color: #333; }
 			.notes { font-size: 24rpx; color: #8e8e93; }
 		}
 

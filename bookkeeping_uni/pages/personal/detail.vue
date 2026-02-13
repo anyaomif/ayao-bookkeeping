@@ -39,22 +39,33 @@
 								formatAmount(group.summary.income) }}</text>
 						</view>
 						<view class="group-items">
-							<tn-swipe-action>
-								<tn-swipe-action-item v-for="item in group.items" :key="item.id" :options="swipeOptions"
-									@click="handleSwipeClick($event, item.id)">
+							<view class="swipe-wrapper" v-for="item in group.items" :key="item.id">
+								<view class="item-fixed-left">
+									<view class="icon-wrapper" :style="{ backgroundColor: item.category.color }">
+										<tn-icon :name="item.category.icon" size="40" color="#fff"></tn-icon>
+									</view>
+									<text class="category-name">{{ item.category.name }}</text>
+								</view>
+								<view class="swipe-content" :class="{ 'no-transition': isDragging }" :style="{ transform: `translateX(${getSwipeX(item.id)}rpx)` }"
+									@touchstart="onSwipeStart($event, item)"
+									@touchmove="onSwipeMove($event, item)"
+									@touchend="onSwipeEnd(item)">
 									<view class="transaction-item">
-										<view class="icon-wrapper" :style="{ backgroundColor: item.category.color }">
-											<tn-icon :name="item.category.icon" size="40" color="#fff"></tn-icon>
-										</view>
 										<view class="item-details">
-											<text class="category-name">{{ item.category.name }}</text>
 											<text class="notes" v-if="item.notes">{{ item.notes }}</text>
 										</view>
-										<text class="amount" :class="item.type">{{ formatAmount(item.amount, item.type)
-										}}</text>
+										<text class="amount" :class="item.type">{{ formatAmount(item.amount, item.type) }}</text>
 									</view>
-								</tn-swipe-action-item>
-							</tn-swipe-action>
+								</view>
+								<view class="swipe-actions">
+									<view class="action-btn-circle edit-btn" @click="goToEdit(item.id)">
+										<tn-icon name="edit" size="36" color="#fff"></tn-icon>
+									</view>
+									<view class="action-btn-circle delete-btn" @click="confirmDelete(item.id)">
+										<tn-icon name="delete" size="36" color="#fff"></tn-icon>
+									</view>
+								</view>
+							</view>
 						</view>
 					</view>
 				</template>
@@ -99,7 +110,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, reactive } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { personalTransactionApi } from '@/api/personal_transaction';
 
@@ -108,12 +119,56 @@ const currentMonth = ref(new Date().getMonth() + 1);
 const showMonthPicker = ref(false);
 const showFilterPopup = ref(false);
 
-const swipeOptions = ref([
-	{ text: '编辑', style: { backgroundColor: '#007aff' } },
-	{ text: '删除', style: { backgroundColor: '#ff3b30' } },
-]);
-
 const mockTransactions = ref([]);
+
+// 滑动手势
+const SWIPE_OPEN = -220;
+const swipeState = reactive({});
+const isDragging = ref(false);
+let swipeStartX = 0;
+let swipeStartY = 0;
+let swipeLocked = false;
+let currentSwipeId = null;
+
+const getSwipeX = (id) => swipeState[id] || 0;
+
+const closeAllSwipe = () => {
+	Object.keys(swipeState).forEach(k => { swipeState[k] = 0; });
+	currentSwipeId = null;
+};
+
+const onSwipeStart = (e, item) => {
+	swipeStartX = e.touches[0].clientX;
+	swipeStartY = e.touches[0].clientY;
+	swipeLocked = false;
+	isDragging.value = true;
+	if (currentSwipeId && currentSwipeId !== item.id) {
+		swipeState[currentSwipeId] = 0;
+	}
+	currentSwipeId = item.id;
+};
+
+const onSwipeMove = (e, item) => {
+	const dx = e.touches[0].clientX - swipeStartX;
+	const dy = e.touches[0].clientY - swipeStartY;
+	if (!swipeLocked && Math.abs(dy) > Math.abs(dx)) {
+		swipeLocked = true;
+	}
+	if (swipeLocked) return;
+	let x = (swipeState[item.id] || 0) + dx * 2;
+	if (x > 0) x = 0;
+	if (x < SWIPE_OPEN) x = SWIPE_OPEN;
+	swipeState[item.id] = x;
+	swipeStartX = e.touches[0].clientX;
+	swipeStartY = e.touches[0].clientY;
+};
+
+const onSwipeEnd = (item) => {
+	isDragging.value = false;
+	if (swipeLocked) return;
+	const x = swipeState[item.id] || 0;
+	swipeState[item.id] = x < SWIPE_OPEN / 2 ? SWIPE_OPEN : 0;
+};
 
 const loadData = async () => {
 	try {
@@ -126,24 +181,27 @@ const loadData = async () => {
 
 const openFilterPopup = () => { showFilterPopup.value = true; };
 
-const handleSwipeClick = async (event, id) => {
-	if (event.index === 0) {
-		// 编辑：跳转到 form 页面（后续可扩展编辑模式）
-		uni.showToast({ title: '编辑功能开发中', icon: 'none' });
-	} else {
-		uni.showModal({
-			title: '确认删除', content: '确定要删除该记录吗？',
-			success: async (res) => {
-				if (res.confirm) {
-					try {
-						await personalTransactionApi.delete(id);
-						uni.showToast({ title: '删除成功', icon: 'none' });
-						loadData();
-					} catch (e) { /* 拦截器处理 */ }
-				}
+const goToEdit = (id) => {
+	closeAllSwipe();
+	uni.navigateTo({ url: `/pages/personal/form?params=${encodeURIComponent(JSON.stringify({ id }))}` });
+};
+
+const confirmDelete = (id) => {
+	closeAllSwipe();
+	uni.showModal({
+		title: '确认删除',
+		content: '删除后无法恢复，确定要删除这条记录吗？',
+		confirmColor: '#ff3b30',
+		success: async (res) => {
+			if (res.confirm) {
+				try {
+					await personalTransactionApi.delete(id);
+					uni.showToast({ title: '删除成功', icon: 'success' });
+					loadData();
+				} catch (e) { /* 拦截器处理 */ }
 			}
-		});
-	}
+		}
+	});
 };
 
 const summary = computed(() => {
@@ -317,19 +375,23 @@ onShow(() => { loadData(); });
 	overflow: hidden;
 }
 
-::v-deep .tn-swipe-action-item__right__button {
-	padding: 0 40rpx !important;
-}
-
-.transaction-item {
+.swipe-wrapper {
+	position: relative;
+	overflow: hidden;
 	display: flex;
 	align-items: center;
-	padding: 28rpx 24rpx;
-	transition: background-color 0.2s ease;
+	min-height: 128rpx;
+	&:not(:last-child) { border-bottom: 1rpx solid #f5f5f5; }
+}
 
-	&:active {
-		background-color: #f8f8f8;
-	}
+.item-fixed-left {
+	display: flex;
+	align-items: center;
+	gap: 16rpx;
+	padding-left: 24rpx;
+	position: relative;
+	z-index: 2;
+	flex-shrink: 0;
 
 	.icon-wrapper {
 		width: 80rpx;
@@ -338,19 +400,55 @@ onShow(() => { loadData(); });
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		margin-right: 24rpx;
 	}
+
+	.category-name { font-size: 30rpx; color: #1c1c1e; white-space: nowrap; }
+}
+
+.swipe-content {
+	flex: 1;
+	position: relative;
+	z-index: 1;
+	background: #fff;
+	transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+	&.no-transition { transition: none; }
+}
+
+.swipe-actions {
+	position: absolute;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	width: 220rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 20rpx;
+	z-index: 0;
+}
+
+.action-btn-circle {
+	width: 72rpx;
+	height: 72rpx;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	&.edit-btn { background-color: #ff6700; }
+	&.delete-btn { background-color: #ff3b30; }
+	&:active { opacity: 0.8; transform: scale(0.92); }
+}
+
+.transaction-item {
+	display: flex;
+	align-items: center;
+	padding: 28rpx 24rpx 28rpx 16rpx;
 
 	.item-details {
 		flex: 1;
 		display: flex;
 		flex-direction: column;
 		gap: 6rpx;
-
-		.category-name {
-			font-size: 30rpx;
-			color: #1c1c1e;
-		}
 
 		.notes {
 			font-size: 24rpx;
