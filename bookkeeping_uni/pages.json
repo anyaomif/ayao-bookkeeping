@@ -1,0 +1,170 @@
+{
+	"easycom": {
+		"custom": {
+			"^tn-(.*)-(item|group)$": "@/uni_modules/tuniaoui-vue3/components/$1/src/$1-$2.vue",
+			"^tn-(.*)": "@/uni_modules/tuniaoui-vue3/components/$1/src/$1.vue",
+			"^qiun-data-charts": "@qiun/ucharts/components/qiun-data-charts/qiun-data-charts"
+		}
+	},
+	"pages": [
+		{
+			"path": "pages/mode/select",
+			"style": {
+				"navigationBarTitleText": "选择模式",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/personal/dashboard",
+			"style": {
+				"navigationBarTitleText": "看板",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/personal/form",
+			"style": {
+				"navigationBarTitleText": "记一笔",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/personal/detail",
+			"style": {
+				"navigationBarTitleText": "交易明细",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/personal/accounts",
+			"style": {
+				"navigationBarTitleText": "账户管理",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/personal/categories",
+			"style": {
+				"navigationBarTitleText": "分类管理",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "俺要记账",
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "pages/person/person",
+			"style": {
+				"navigationBarTitleText": "个人中心",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/project/list",
+			"style": {
+				"navigationBarTitleText": "账本管理",
+				"app-plus": {
+					"bounce": "none"
+				}
+			}
+		},
+		{
+			"path": "pages/project/form",
+			"style": {
+				"navigationBarTitleText": "项目信息"
+			}
+		},
+		{
+			"path": "pages/person/profile",
+			"style": {
+				"navigationBarTitleText": "个人信息"
+			}
+		},
+		{
+			"path": "pages/person/changePassword",
+			"style": {
+				"navigationBarTitleText": "修改密码"
+			}
+		},
+		{
+			"path": "pages/person/accountSettings",
+			"style": {
+				"navigationBarTitleText": "账户设置"
+			}
+		},
+		{
+			"path": "pages/person/about",
+			"style": {
+				"navigationBarTitleText": "关于我们"
+			}
+		},
+		{
+			"path": "pages/form/accountingForm",
+			"style": {
+				"navigationBarTitleText": "记一笔"
+			}
+		},
+		{
+			"path": "pages/login/login",
+			"style": {
+				"navigationBarTitleText": "登录",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/register/register",
+			"style": {
+				"navigationBarTitleText": "注册"
+			}
+		},
+		{
+			"path": "pages/forget/forget",
+			"style": {
+				"navigationBarTitleText": "忘记密码"
+			}
+		},
+		{
+			"path": "pages/stats/stats",
+			"style": {
+				"navigationBarTitleText": "收入统计",
+				"navigationStyle": "custom"
+			}
+		}
+	],
+	"tabBar": {
+		"custom": true,
+		"color": "#c1c1c1",
+		"selectedColor": "#000000",
+		"borderStyle": "white",
+		"backgroundColor": "#ffffff",
+		"fontSize": "16px",
+		"list": [
+			{
+				"pagePath": "pages/index/index"
+			},
+			{
+				"pagePath": "pages/stats/stats"
+			},
+			{
+				"pagePath": "pages/person/person"
+			}
+		]
+	},
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "俺要记账",
+		"navigationBarBackgroundColor": "#FFFFFF",
+		"backgroundColor": "#F8F8F8",
+		"app-plus": {
+			"bounce": "none",
+			"scrollIndicator": "none",
+			"softinputmode": "adjustResize"
+		}
+	},
+	"uniIdRouter": {}
+}
