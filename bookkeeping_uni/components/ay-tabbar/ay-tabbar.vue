@@ -1,5 +1,5 @@
 <template>
-  <view class="ay-tabbar" :class="{ 
+  <view class="ay-tabbar" v-show="visible" :class="{ 
     'is-float': isFloat,
     'is-frosted': frosted 
   }">
@@ -50,6 +50,7 @@ export default {
   },
   data() {
     return {
+      visible: true,
       tabList: [
         {
           text: '首页',
@@ -79,6 +80,14 @@ export default {
         url: this.tabList[index].pagePath
       })
     }
+  },
+  mounted() {
+    uni.$on('toggleTabbar', (show) => {
+      this.visible = show
+    })
+  },
+  beforeUnmount() {
+    uni.$off('toggleTabbar')
   }
 }
 </script>

@@ -17,8 +17,8 @@ module.exports = appInfo => {
   // use for cookie sign key, should change to your own and keep security
   config.keys = appInfo.name + '_1707447627112_7935';
 
-  // add your middleware config here
-  config.middleware = [];
+  // errorHandler 必须在最外层捕获所有异常
+  config.middleware = ['errorHandler'];
 
   // 配置集群
   config.cluster = {

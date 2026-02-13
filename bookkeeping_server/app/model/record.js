@@ -16,7 +16,17 @@ module.exports = app => {
       },
     },
     remark: { type: STRING(500), comment: '备注信息' },
-    image_list: { type: TEXT, comment: '图片URL数组，JSON字符串' },
+    image_list: {
+      type: TEXT,
+      comment: '图片URL数组，JSON字符串',
+      get() {
+        const val = this.getDataValue('image_list');
+        return val ? JSON.parse(val) : [];
+      },
+      set(val) {
+        this.setDataValue('image_list', JSON.stringify(val || []));
+      },
+    },
     // 点工字段
     work_option: {
       type: INTEGER,

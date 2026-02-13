@@ -223,9 +223,6 @@
 
 	onShow(() => {
 		loadUserSettings()
-	})
-
-	onShow(() => {
 		getUserInfo()
 		getWorkStats()
 	})

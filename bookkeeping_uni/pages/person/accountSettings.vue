@@ -365,14 +365,15 @@
 		}
 	}
 
-	// 退出登录
+	// 退出登录：只清除用户数据，保留应用级标记
 	const handleLogout = () => {
 		uni.showModal({
 			title: '提示',
 			content: '确定要退出登录吗？',
 			success: (res) => {
 				if (res.confirm) {
-					uni.clearStorageSync()
+					const keysToRemove = ['token', 'current_project', 'user_settings']
+					keysToRemove.forEach(key => uni.removeStorageSync(key))
 					uni.reLaunch({
 						url: '/pages/login/login'
 					})

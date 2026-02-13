@@ -31,7 +31,7 @@ const request = (options = {}) => {
         
         // 请求成功
         if (statusCode === 200) {
-          if (data.success) {
+          if (data.code === 200 || data.success) {
             resolve(data)
           } else {
             uni.showToast({
