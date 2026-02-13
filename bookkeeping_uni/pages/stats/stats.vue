@@ -43,9 +43,10 @@
 		<!-- 收入构成 -->
 		<view class="chart-section">
 			<ay-title title="收入构成" bold padding="0" class="title"></ay-title>
-			<view class="composition-chart" style="height: 300rpx;">
+			<view class="composition-chart" style="height: 300rpx; position: relative;">
 				<qiun-data-charts type="pie" canvas2d canvasId="pieChart" :opts="pieOpts" :chartData="pieData"
 					@complete="onChartComplete('pie')" />
+				<view v-if="!hasIncomeData" class="empty-chart-overlay">暂无收入数据</view>
 			</view>
 			<view class="income-info">
 				<view class="income-item" @tap="toggleAmountDisplay">
@@ -66,18 +67,21 @@
 		<!-- 收入趋势 -->
 		<view class="chart-section">
 			<ay-title title="收入趋势" bold padding="0" class="title"></ay-title>
-			<view class="trend-chart" style="height: 440rpx;">
+			<view class="trend-chart" style="height: 440rpx; position: relative;">
 				<qiun-data-charts type="area" canvas2d canvasId="areaChart" :opts="areaOpts" :chartData="areaData"
+					:ontouch="true" :disableScroll="true"
 					@complete="onChartComplete('area')" />
+				<view v-if="!hasDailyData" class="empty-chart-overlay">暂无趋势数据</view>
 			</view>
 		</view>
 
 		<!-- 工作状态分析 -->
 		<view class="chart-section">
 			<ay-title title="工作状态分析" bold padding="0" class="title"></ay-title>
-			<view class="status-chart" style="height: 400rpx;">
+			<view class="status-chart" style="height: 400rpx; position: relative;">
 				<qiun-data-charts type="rose" canvas2d canvasId="roseChart" :opts="roseOpts" :chartData="roseData"
 					@complete="onChartComplete('rose')" />
+				<view v-if="!hasWorkStatusData" class="empty-chart-overlay">暂无工作数据</view>
 			</view>
 		</view>
 
@@ -127,19 +131,14 @@
 	import {
 		ref,
 		computed,
-		onMounted,
 		nextTick,
 		onUnmounted
 	} from 'vue'
 	import {
 		formatDate,
 		formatNumber,
-		getNowDate,
-		navigateTo
+		getNowDate
 	} from '@/utils/ayao'
-	import {
-		recordApi
-	} from '@/api/record'
 	import {
 		projectApi
 	} from '@/api/project'
@@ -238,43 +237,39 @@
 
 	// 修改面积图配置
 	const areaOpts = ref({
-		color: ['#ff6700', '#1890ff'],
-		padding: [15, 0, 0, 0],
+		color: ['#ff6700', '#1890ff', '#52c41a'],
+		padding: [15, 15, 0, 5],
+		dataLabel: false,
+		dataPointShape: false,
+		enableScroll: true,
 		legend: {
 			show: true,
 			position: 'bottom',
 			float: 'center',
-			itemGap: 20,
-			fontSize: 12,
+			itemGap: 15,
+			fontSize: 11,
 			padding: 10,
 			margin: 5
 		},
 		xAxis: {
+			itemCount: 7,
+			scrollShow: true,
 			axisLine: true,
 			axisLineColor: '#eee',
-			gridType: 'solid',
+			gridType: 'dash',
 			gridColor: '#f5f5f5',
 			rotateLabel: true,
 			marginTop: 10,
-			axisLabel: {
-				rotate: 45,
-				fontSize: 11,
-				color: '#666',
-				margin: 5,
-				format: (val) => {
-					return val.split('-').slice(1).join('-')
-				}
-			}
+			fontSize: 11,
+			fontColor: '#666'
 		},
 		yAxis: {
 			gridType: 'dash',
 			gridColor: '#f5f5f5',
 			splitNumber: 4,
 			min: 0,
-			format: 'yAxisDemo',
 			fontSize: 11,
-			color: '#666',
-			margin: 10
+			fontColor: '#666'
 		},
 		extra: {
 			area: {
@@ -287,11 +282,17 @@
 			},
 			tooltip: {
 				showBox: true,
-				boxPadding: 3,
+				boxPadding: 5,
 				boxBorderRadius: 5,
 				boxBgColor: '#fff',
 				boxBorderColor: '#eee',
-				fontSize: 12
+				fontSize: 12,
+				legendShape: 'circle',
+				customBox: null,
+				splitLine: true,
+				formatter: (item) => {
+					return item.name + ': ¥' + item.data
+				}
 			}
 		}
 	})
@@ -349,6 +350,15 @@
 	const isAmountHidden = ref(true)
 	const temporaryShow = ref(false)
 	let hideTimeout = null
+
+	// 空数据判断
+	const hasIncomeData = computed(() => totalPointIncome.value > 0 || totalContractIncome.value > 0)
+	const hasDailyData = computed(() => areaData.value.categories.length > 0)
+	const hasWorkStatusData = computed(() => {
+		const s = roseData.value.series?.[0]?.data
+		if (!s || s.length === 0) return false
+		return s.some(item => item.name !== '暂无数据' && item.value > 0)
+	})
 
 	// 获取项目列表
 	const getProjectList = async () => {
@@ -505,31 +515,74 @@
 		monthlyContractIncome.value = currentMonthData.contract
 	}
 
+	// 判断是否需要按月聚合（本年 或 自定义跨度>60天）
+	const shouldAggregateByMonth = (range, start, end) => {
+		if (range === 'year') return true
+		if (range === 'custom' && start && end) {
+			const diff = (new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24)
+			return diff > 60
+		}
+		return false
+	}
+
 	const updateChartData = (data) => {
-		// 更新饼图数据
-		pieData.value = {
-			series: [{
-				data: [{
-					name: '点工收入',
-					value: data.statistics.point_income
-				}, {
-					name: '包工收入',
-					value: data.statistics.contract_income
+		const stats = data.statistics
+		const hasIncome = stats.point_income > 0 || stats.contract_income > 0
+		const hasWorkStatus = stats.work_status.normal_work_count > 0 ||
+			stats.work_status.rest_count > 0 || stats.work_status.overtime_count > 0
+		const hasDailyData = stats.daily_income && stats.daily_income.length > 0
+
+		// 饼图：无数据时显示占位
+		if (hasIncome) {
+			pieData.value = {
+				series: [{
+					data: [
+						{ name: '点工收入', value: stats.point_income },
+						{ name: '包工收入', value: stats.contract_income }
+					]
 				}]
-			}]
+			}
+		} else {
+			pieData.value = {
+				series: [{
+					data: [{ name: '暂无数据', value: 1 }]
+				}]
+			}
 		}
 
-		// 更新面积图数据
-		const dailyIncome = data.statistics.daily_income
+		// 面积图
 		const dates = []
 		const pointIncomes = []
 		const contractIncomes = []
+		const totalIncomes = []
 
-		dailyIncome.forEach(item => {
-			dates.push(item.date.slice(5))
-			pointIncomes.push(item.point_income)
-			contractIncomes.push(item.contract_income)
-		})
+		if (hasDailyData) {
+			const useMonthAgg = shouldAggregateByMonth(currentRange.value, startDate.value, endDate.value)
+
+			if (useMonthAgg) {
+				const monthMap = new Map()
+				stats.daily_income.forEach(item => {
+					const month = item.date.slice(0, 7)
+					const existing = monthMap.get(month) || { point_income: 0, contract_income: 0 }
+					existing.point_income += item.point_income
+					existing.contract_income += item.contract_income
+					monthMap.set(month, existing)
+				})
+				monthMap.forEach((val, key) => {
+					dates.push(key.slice(5) + '月')
+					pointIncomes.push(val.point_income)
+					contractIncomes.push(val.contract_income)
+					totalIncomes.push(val.point_income + val.contract_income)
+				})
+			} else {
+				stats.daily_income.forEach(item => {
+					dates.push(item.date.slice(5))
+					pointIncomes.push(item.point_income)
+					contractIncomes.push(item.contract_income)
+					totalIncomes.push(item.point_income + item.contract_income)
+				})
+			}
+		}
 
 		areaData.value = {
 			categories: dates,
@@ -539,27 +592,31 @@
 			}, {
 				name: '包工收入',
 				data: contractIncomes
+			}, {
+				name: '总收入',
+				data: totalIncomes
 			}]
 		}
 
-		// 更新环形图数据
-		const workStatus = data.statistics.work_status
-		roseData.value = {
-			series: [{
-				data: [{
-					name: '正常工作',
-					value: workStatus.normal_work_count
-				}, {
-					name: '休息',
-					value: workStatus.rest_count
-				}, {
-					name: '加班',
-					value: workStatus.overtime_count
+		// 玫瑰图：无数据时显示占位
+		if (hasWorkStatus) {
+			roseData.value = {
+				series: [{
+					data: [
+						{ name: '正常工作', value: stats.work_status.normal_work_count },
+						{ name: '休息', value: stats.work_status.rest_count },
+						{ name: '加班', value: stats.work_status.overtime_count }
+					]
 				}]
-			}]
+			}
+		} else {
+			roseData.value = {
+				series: [{
+					data: [{ name: '暂无数据', value: 1 }]
+				}]
+			}
 		}
 
-		// 清空临时数据
 		tempStatisticsData.value = null
 	}
 
@@ -835,6 +892,21 @@
 
 			.title {
 				transform: translateX(-20rpx);
+			}
+
+			.empty-chart-overlay {
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				color: #ccc;
+				font-size: 28rpx;
+				background: rgba(255, 255, 255, 0.9);
+				z-index: 1;
 			}
 
 			.income-info {

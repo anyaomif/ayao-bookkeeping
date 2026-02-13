@@ -249,6 +249,14 @@
 				await projectApi.create(submitData)
 
 			if (res.success) {
+				// 编辑时同步更新本地缓存的当前项目
+				if (isEdit.value) {
+					const cached = uni.getStorageSync('current_project')
+					if (cached && String(cached.id) === String(projectId.value)) {
+						uni.setStorageSync('current_project', res.data)
+					}
+				}
+
 				uni.showToast({
 					title: isEdit.value ? '修改成功' : '创建成功',
 					icon: 'success'

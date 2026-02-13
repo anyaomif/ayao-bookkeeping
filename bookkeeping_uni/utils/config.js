@@ -1,6 +1,6 @@
 const config = {
   development: {
-    BASE_URL: 'http://127.0.0.1:7001/api',
+    BASE_URL: 'http://192.168.1.7:7001/api',
   },
   production: {
     BASE_URL: 'https://aybks.anyaowl.cn/api',
