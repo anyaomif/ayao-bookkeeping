@@ -14,9 +14,19 @@ module.exports = {
     },
   },
 
-  // 配置跨域
+  // 配置跨域（生产环境限定域名）
   cors: {
-    origin: [ 'http://aybk.anyaowl.cn/', 'https://aybk.anyaowl.cn/' ], // 生产环境建议配置具体域名
+    origin(ctx) {
+      const allowOrigins = [
+        'http://aybk.anyaowl.cn',
+        'https://aybk.anyaowl.cn',
+      ];
+      const requestOrigin = ctx.get('origin');
+      if (allowOrigins.includes(requestOrigin)) {
+        return requestOrigin;
+      }
+      return '';
+    },
     allowMethods: 'GET,HEAD,PUT,POST,DELETE,PATCH,OPTIONS',
     credentials: true,
     maxAge: 86400,
@@ -27,17 +37,17 @@ module.exports = {
     csrf: {
       enable: false,
     },
-    domainWhiteList: [ 'http://aybk.anyaowl.cn/', 'https://aybk.anyaowl.cn/' ],
+    domainWhiteList: [ 'http://aybk.anyaowl.cn', 'https://aybk.anyaowl.cn' ],
   },
 
-  // 如果生产环境数据库配置不同，则在这里覆盖
+  // 生产环境数据库（从环境变量读取）
   sequelize: {
     dialect: 'mysql',
-    host: '127.0.0.1',
-    port: 3306,
-    database: 'anyaobookkeeping_formal',
-    username: 'anyaobookkeeping_formal',
-    password: '252SNbyYaL745C5C',
+    host: process.env.DB_HOST || '127.0.0.1',
+    port: parseInt(process.env.DB_PORT || '3306'),
+    database: process.env.DB_NAME || 'aybk_formal',
+    username: process.env.DB_USER || 'aybk_formal',
+    password: process.env.DB_PASSWORD || '',
     define: {
       timestamps: true,
       freezeTableName: true,

@@ -5,7 +5,9 @@
  * @Date: 2025-01-28 11:43
  */
 
-export const baseUrl = import.meta.env.VITE_API_URL;
+import config from './config'
+
+export const baseUrl = config.BASE_URL.replace(/\/api$/, '');
 
 // 获取当前年月日
 export const getNowDate = () => {

@@ -1,6 +1,7 @@
 const { Controller } = require('egg');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 class UploadController extends Controller {
   async upload() {
@@ -15,8 +16,10 @@ class UploadController extends Controller {
         return;
       }
       const file = ctx.request.files[0];
-      const filename = path.basename(file.filename);
-      const targetPath = path.join(this.config.baseDir, 'app/public/uploads', filename);
+      const ext = path.extname(file.filename).toLowerCase();
+      const uuid = crypto.randomUUID();
+      const safeFilename = `${uuid}${ext}`;
+      const targetPath = path.join(this.config.baseDir, 'app/public/uploads', safeFilename);
 
       const reader = fs.createReadStream(file.filepath);
       const writer = fs.createWriteStream(targetPath);
@@ -26,7 +29,7 @@ class UploadController extends Controller {
         code: 200,
         message: 'File uploaded successfully',
         data: {
-          url: `/public/uploads/${filename}`,
+          url: `/public/uploads/${safeFilename}`,
         },
       };
     } catch (error) {

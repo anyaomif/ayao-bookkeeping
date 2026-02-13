@@ -92,8 +92,11 @@
 		showPassword.value = !showPassword.value
 	}
 
+	const isSubmitting = ref(false)
+
 	const handleRegister = async () => {
-		// 表单验证
+		if (isSubmitting.value) return
+
 		if (!formData.username || !formData.password || !formData.phone || !formData.nickname || !formData.captcha) {
 			uni.showToast({
 				title: '请填写完整信息',
@@ -102,7 +105,6 @@
 			return
 		}
 
-		// 验证码验证
 		if (formData.captcha !== captchaCode.value) {
 			uni.showToast({
 				title: '验证码错误',
@@ -111,6 +113,24 @@
 			refreshCaptcha()
 			return
 		}
+
+		if (formData.password.length < 6) {
+			uni.showToast({
+				title: '密码至少6位',
+				icon: 'none'
+			})
+			return
+		}
+
+		if (!/^1\d{10}$/.test(formData.phone)) {
+			uni.showToast({
+				title: '手机号格式不正确',
+				icon: 'none'
+			})
+			return
+		}
+
+		isSubmitting.value = true
 
 		try {
 			uni.showLoading({
@@ -126,8 +146,12 @@
 			}, 1500)
 		} catch (error) {
 			console.error('注册失败：', error)
+			refreshCaptcha()
 		} finally {
 			uni.hideLoading()
+			setTimeout(() => {
+				isSubmitting.value = false
+			}, 2000)
 		}
 	}
 

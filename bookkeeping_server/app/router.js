@@ -7,7 +7,7 @@ module.exports = app => {
 
   router.get('/', controller.home.index);
   router.post('/api/check-update', controller.home.checkUpdate);
-  router.post('/upload', controller.upload.upload);
+  router.post('/upload', jwt, controller.upload.upload);
 
   // 用户认证相关路由
   router.post('/api/user/register', controller.user.register);

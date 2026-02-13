@@ -1,4 +1,6 @@
-const BASE_URL = import.meta.env.VITE_API_URL + import.meta.env.VITE_BASE_URL
+import config from './config'
+
+const BASE_URL = config.BASE_URL
 const TIMEOUT = 15000
 
 // 请求封装

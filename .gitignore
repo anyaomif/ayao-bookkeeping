@@ -35,6 +35,13 @@ Thumbs.db
 # 压缩包
 *.zip
 
+# 根目录安卓证书和素材
+安卓证书/
+素材/
+
+# 环境变量文件（含敏感信息）
+bookkeeping_server/.env
+
 # 上传文件（保留默认头像）
 bookkeeping_server/app/public/uploads/*
 !bookkeeping_server/app/public/uploads/default_avatar.png

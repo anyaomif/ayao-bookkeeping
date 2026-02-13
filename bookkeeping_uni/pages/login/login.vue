@@ -44,17 +44,25 @@
 	} from '@/api/user.js'
 	
 	onLoad(() => {
-		uni.startSoterAuthentication({
-			requestAuthModes: ['fingerPrint'],
-			challenge: new Date().getTime().toString(),
-			authContent: '请用指纹解锁',
-			success(res) {
-				console.log('res', res)
-			},
-			fail(err) {
-				console.log('err', err)
-			}
-		})
+		const settings = uni.getStorageSync('user_settings')
+		const token = uni.getStorageSync('token')
+		if (token && settings?.fingerprint_unlock?.enabled) {
+			uni.checkIsSupportSoterAuthentication({
+				success(res) {
+					if (res.supportMode.includes('fingerPrint')) {
+						uni.startSoterAuthentication({
+							requestAuthModes: ['fingerPrint'],
+							challenge: new Date().getTime().toString(),
+							authContent: '请用指纹解锁',
+							success() {
+								uni.switchTab({ url: '/pages/index/index' })
+							},
+							fail() {}
+						})
+					}
+				}
+			})
+		}
 	})
 
 	// 表单数据

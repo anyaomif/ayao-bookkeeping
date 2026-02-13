@@ -2,6 +2,8 @@
 
 'use strict';
 
+require('dotenv').config();
+
 /**
  * @param {Egg.EggAppInfo} appInfo app info
  */
@@ -38,19 +40,19 @@ module.exports = appInfo => {
     ],
   };
 
-  // 配置 JWT
+  // 配置 JWT（从环境变量读取）
   config.jwt = {
-    secret: 'anyaobookkeeping-jwt-secret',
+    secret: process.env.JWT_SECRET || 'anyaobookkeeping-jwt-secret-dev',
   };
 
-  // 配置数据库
+  // 配置数据库（从环境变量读取）
   config.sequelize = {
     dialect: 'mysql',
-    host: '47.108.69.33',
-    port: 3306,
-    database: 'anyaobookkeeping',
-    username: 'anyaobookkeeping',
-    password: 'zZ8cSShYKzrjBYNz',
+    host: process.env.DB_HOST || '127.0.0.1',
+    port: parseInt(process.env.DB_PORT || '3306'),
+    database: process.env.DB_NAME || 'anyaobookkeeping',
+    username: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
     define: {
       timestamps: true,
       freezeTableName: true,
@@ -61,7 +63,9 @@ module.exports = appInfo => {
 
   // 配置CORS
   config.cors = {
-    origin: '*', // 允许所有域名访问
+    origin(ctx) {
+      return ctx.get('origin') || '*';
+    },
     allowMethods: 'GET,HEAD,PUT,POST,DELETE,PATCH,OPTIONS',
     credentials: true,
     maxAge: 86400,
