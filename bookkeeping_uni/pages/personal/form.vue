@@ -61,14 +61,15 @@
 
         <view class="divider"></view>
 
-        <view class="info-item" @click="openAccount">
+        <view class="info-item" @click="accounts.length ? openAccount() : goAddAccount()">
           <view class="item-left">
             <view class="account-icon">
-              <tn-icon name="wallet" size="40" color="#ff6700"></tn-icon>
+              <tn-icon name="bankcard" size="40" color="#ff6700"></tn-icon>
             </view>
             <view class="item-content">
-              <text class="item-title">{{ selectedAccount.name }}</text>
-              <text class="item-subtitle">余额 ¥{{ formatAmount(selectedAccount.balance) }}</text>
+              <text class="item-title">{{ accounts.length ? selectedAccount.name : '去添加账户' }}</text>
+              <text class="item-subtitle" v-if="accounts.length">余额 ¥{{ formatAmount(selectedAccount.balance) }}</text>
+              <text class="item-subtitle" v-else>暂无账户，点击添加</text>
             </view>
           </view>
           <tn-icon name="right" size="32" color="#c7c7cc"></tn-icon>
@@ -163,7 +164,7 @@
           <view class="account-item" v-for="acc in accounts" :key="acc.id" @click="selectAccount(acc)">
             <view class="account-left">
               <view class="account-icon">
-                <tn-icon name="wallet" size="44" color="#ff6700"></tn-icon>
+                <tn-icon name="bankcard" size="44" color="#ff6700"></tn-icon>
               </view>
               <view class="account-info">
                 <text class="account-name">{{ acc.name }}</text>
@@ -209,88 +210,64 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
+import { personalCategoryApi } from '@/api/personal_category'
+import { personalAccountApi } from '@/api/personal_account'
+import { personalTransactionApi } from '@/api/personal_transaction'
 
-const currentType = ref('expense') // expense | income | transfer
+const currentType = ref('expense')
 const amount = ref('0')
 const remark = ref('')
 
-const selectedCategory = ref({ name: '餐饮', icon: 'eat', color: '#ff9f0a' })
-const selectedAccount = ref({ id: 1, name: '现金', balance: 1200 })
+const selectedCategory = ref({ id: null, name: '请选择', icon: 'eat', color: '#ff9f0a' })
+const selectedAccount = ref({ id: null, name: '请选择', balance: 0 })
 const currentDate = ref(new Date())
 
 const showCategory = ref(false)
 const showAccount = ref(false)
 const showDate = ref(false)
 const showKeyboard = ref(false)
-const activeMainCategory = ref('餐饮')
+const activeMainCategory = ref('')
 
-const categories = ref({
-  expense: [
-    {
-      name: '餐饮', icon: 'eat', subcategories: [
-        { name: '早餐', icon: 'eat', color: '#ff9f0a' },
-        { name: '午餐', icon: 'eat', color: '#ff9f0a' },
-        { name: '晚餐', icon: 'eat', color: '#ff9f0a' },
-        { name: '夜宵', icon: 'eat', color: '#ff9f0a' },
-        { name: '零食', icon: 'eat', color: '#ff9f0a' },
-        { name: '水果', icon: 'eat', color: '#ff9f0a' },
-        { name: '买菜', icon: 'eat', color: '#ff9f0a' },
-      ]
-    },
-    {
-      name: '购物', icon: 'shop', subcategories: [
-        { name: '服饰', icon: 'shop', color: '#af52de' },
-        { name: '日用', icon: 'shop', color: '#af52de' },
-        { name: '数码', icon: 'shop', color: '#af52de' },
-        { name: '家居', icon: 'shop', color: '#af52de' },
-      ]
-    },
-    {
-      name: '交通', icon: 'car', subcategories: [
-        { name: '公交', icon: 'car', color: '#5ac8fa' },
-        { name: '地铁', icon: 'car', color: '#5ac8fa' },
-        { name: '打车', icon: 'car', color: '#5ac8fa' },
-        { name: '加油', icon: 'car', color: '#5ac8fa' },
-      ]
-    },
-  ],
-  income: [
-    {
-      name: '职业', icon: 'fire', subcategories: [
-        { name: '工资', icon: 'fire', color: '#34c759' },
-        { name: '奖金', icon: 'fire', color: '#34c759' },
-        { name: '兼职', icon: 'fire', color: '#34c759' },
-      ]
-    },
-    {
-      name: '理财', icon: 'safe', subcategories: [
-        { name: '股票', icon: 'safe', color: '#af52de' },
-        { name: '基金', icon: 'safe', color: '#af52de' },
-      ]
-    },
-  ],
-  transfer: [
-    {
-      name: '转账', icon: 'arrow-left', subcategories: [
-        { name: '转出', icon: 'arrow-left', color: '#ff3b30' },
-        { name: '转入', icon: 'arrow-right', color: '#34c759' },
-        { name: '取现', icon: 'card', color: '#8e8e93' },
-      ]
-    },
-  ]
-})
+const categories = ref({ expense: [], income: [], transfer: [] })
+const accounts = ref([])
 
 const activeSubCategories = computed(() => {
-  const main = categories.value[currentType.value].find(c => c.name === activeMainCategory.value);
+  const list = categories.value[currentType.value] || [];
+  const main = list.find(c => c.name === activeMainCategory.value);
   return main ? main.subcategories : [];
 })
 
-const accounts = ref([
-  { id: 1, name: '现金', balance: 1200 },
-  { id: 2, name: '银行卡', balance: 23580.2 },
-  { id: 3, name: '微信钱包', balance: 562.32 },
-  { id: 4, name: '支付宝', balance: 1286.07 },
-])
+const loadData = async () => {
+  try {
+    const [catRes, accRes] = await Promise.all([
+      personalCategoryApi.getAll(),
+      personalAccountApi.getList(),
+    ]);
+    if (catRes.success) {
+      categories.value = catRes.data;
+      // 设置默认选中
+      const firstMain = categories.value[currentType.value]?.[0];
+      if (firstMain) {
+        activeMainCategory.value = firstMain.name;
+        if (firstMain.subcategories?.length) {
+          selectedCategory.value = firstMain.subcategories[0];
+        }
+      }
+    }
+    if (accRes.success) {
+      accounts.value = accRes.data.list;
+      if (!accounts.value.length) {
+        await personalAccountApi.init();
+        const retry = await personalAccountApi.getList();
+        if (retry.success) accounts.value = retry.data.list;
+      }
+      if (accounts.value.length) selectedAccount.value = accounts.value[0];
+    }
+  } catch (e) { /* 拦截器处理 */ }
+}
+
+onShow(() => { loadData(); })
 
 const keypad = ref([
   [
@@ -317,15 +294,6 @@ const keypad = ref([
 
 const majorAmount = computed(() => amount.value.split('.')[0])
 const minorAmount = computed(() => (amount.value.split('.')[1] || '00').padEnd(2, '0').slice(0, 2))
-const displayDate = computed(() => {
-  const d = currentDate.value
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mi = String(d.getMinutes()).padStart(2, '0')
-  return `${d.getFullYear()}-${mm}-${dd} ${hh}:${mi}`
-})
-
 const formatDisplayTime = computed(() => {
   const d = currentDate.value
   const today = new Date()
@@ -349,10 +317,13 @@ const formatAmount = (num) => {
 
 const setType = (t) => {
   currentType.value = t
-  // 切换类型时重置分类为该组第一个
-  const firstMainCategory = categories.value[t][0];
-  activeMainCategory.value = firstMainCategory.name;
-  selectedCategory.value = firstMainCategory.subcategories[0];
+  const firstMainCategory = (categories.value[t] || [])[0];
+  if (firstMainCategory) {
+    activeMainCategory.value = firstMainCategory.name;
+    if (firstMainCategory.subcategories?.length) {
+      selectedCategory.value = firstMainCategory.subcategories[0];
+    }
+  }
 }
 
 const openKeyboard = () => {
@@ -400,6 +371,9 @@ const openAccount = () => {
   showKeyboard.value = false
   showAccount.value = true
 }
+const goAddAccount = () => {
+  uni.navigateTo({ url: '/pages/personal/accounts' })
+}
 const openDate = () => {
   showKeyboard.value = false
   showDate.value = true
@@ -437,8 +411,28 @@ const setDateTo = (type) => {
   uni.vibrateShort();
 }
 
-const submitMock = () => {
-  uni.showToast({ title: '静态原型：记一笔', icon: 'none' })
+const submitMock = async () => {
+  const numAmount = parseFloat(amount.value);
+  if (!numAmount || numAmount <= 0) return uni.showToast({ title: '请输入金额', icon: 'none' });
+  if (!selectedAccount.value.id) return uni.showToast({ title: '请选择账户', icon: 'none' });
+
+  const d = currentDate.value;
+  const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+  try {
+    await personalTransactionApi.create({
+      type: currentType.value,
+      amount: numAmount,
+      category_id: selectedCategory.value.id || null,
+      account_id: selectedAccount.value.id,
+      date: dateStr,
+      time: timeStr,
+      remark: remark.value || '',
+    });
+    uni.showToast({ title: '记录成功', icon: 'success' });
+    setTimeout(() => uni.navigateBack(), 800);
+  } catch (e) { /* 拦截器处理 */ }
 }
 </script>
 

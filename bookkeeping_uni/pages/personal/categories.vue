@@ -111,6 +111,8 @@
 
 <script setup>
 import { ref } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
+import { personalCategoryApi } from '@/api/personal_category';
 
 const currentType = ref('expense');
 const activeCollapse = ref([]);
@@ -118,67 +120,94 @@ const showPopup = ref(false);
 const popupMode = ref('add');
 
 const categoryForm = ref({
-	id: null,
-	name: '',
-	icon: 'eat',
-	color: '#ff9f0a'
+	id: null, name: '', icon: 'eat', color: '#ff9f0a', type: 'expense', parent_id: 0
 });
 
 const iconOptions = ref(['eat', 'shop', 'car', 'mobile', 'science', 'ticket', 'fire', 'safe', 'wallet', 'card', 'wechat', 'alipay']);
 const colorOptions = ref(['#ff6700', '#007aff', '#34c759', '#ff9f0a', '#af52de', '#ff3b30', '#5ac8fa', '#8e8e93']);
 
-const categories = ref({
-	expense: [
-		{
-			id: 'exp-1', name: '餐饮', icon: 'eat', subcategories: [
-				{ id: 'exp-sub-1', name: '早餐', icon: 'eat', color: '#ff9f0a' },
-				{ id: 'exp-sub-2', name: '午餐', icon: 'eat', color: '#ff9f0a' },
-				{ id: 'exp-sub-3', name: '晚餐', icon: 'eat', color: '#ff9f0a' },
-			]
-		},
-		{
-			id: 'exp-2', name: '购物', icon: 'shop', subcategories: [
-				{ id: 'exp-sub-4', name: '服饰', icon: 'shop', color: '#af52de' },
-				{ id: 'exp-sub-5', name: '日用', icon: 'shop', color: '#af52de' },
-			]
-		},
-	],
-	income: [
-		{
-			id: 'inc-1', name: '职业', icon: 'fire', subcategories: [
-				{ id: 'inc-sub-1', name: '工资', icon: 'fire', color: '#34c759' },
-				{ id: 'inc-sub-2', name: '奖金', icon: 'fire', color: '#34c759' },
-			]
-		},
-	],
-});
+const categories = ref({ expense: [], income: [] });
 
 const swipeOptions = ref([
 	{ text: '编辑', style: { backgroundColor: '#007aff' } },
 	{ text: '删除', style: { backgroundColor: '#ff3b30' } }
 ]);
 
+const loadCategories = async () => {
+	try {
+		const res = await personalCategoryApi.getAll();
+		if (res.success) {
+			categories.value = res.data;
+		}
+	} catch (e) {
+		uni.showToast({ title: '获取分类失败', icon: 'none' });
+	}
+};
+
 const goBack = () => uni.navigateBack();
 
+// 添加子分类（默认挂到当前类型第一个主分类下）
 const openCategoryPopup = (mode = 'add', category = null) => {
 	popupMode.value = mode;
 	if (mode === 'add') {
-		categoryForm.value = { id: null, name: '', icon: 'eat', color: '#ff9f0a' };
+		const firstMain = categories.value[currentType.value]?.[0];
+		categoryForm.value = {
+			id: null, name: '', icon: 'eat', color: '#ff9f0a',
+			type: currentType.value, parent_id: firstMain?.id || 0,
+		};
 	} else {
 		categoryForm.value = { ...category };
 	}
 	showPopup.value = true;
 };
 
-const saveCategory = () => {
-	uni.showToast({ title: '保存成功', icon: 'none' });
-	showPopup.value = false;
+const saveCategory = async () => {
+	const { id, name, icon, color, type, parent_id } = categoryForm.value;
+	if (!name.trim()) return uni.showToast({ title: '请输入分类名称', icon: 'none' });
+
+	try {
+		const payload = { name: name.trim(), icon, color, type: type || currentType.value, parent_id };
+		if (popupMode.value === 'add') {
+			await personalCategoryApi.create(payload);
+		} else {
+			await personalCategoryApi.update(id, payload);
+		}
+		uni.showToast({ title: '保存成功', icon: 'none' });
+		showPopup.value = false;
+		loadCategories();
+	} catch (e) { /* 拦截器处理 */ }
 };
 
 const handleSwipeClick = (event, id) => {
-	const action = event.index === 0 ? '编辑' : '删除';
-	uni.showToast({ title: `${action} ID: ${id}`, icon: 'none' });
+	if (event.index === 0) {
+		// 编辑：找到子分类
+		let target = null;
+		for (const type of ['expense', 'income', 'transfer']) {
+			for (const main of (categories.value[type] || [])) {
+				const sub = (main.subcategories || []).find(s => s.id === id);
+				if (sub) { target = sub; break; }
+			}
+			if (target) break;
+		}
+		if (target) openCategoryPopup('edit', target);
+	} else {
+		uni.showModal({
+			title: '确认删除',
+			content: '确定要删除该分类吗？',
+			success: async (res) => {
+				if (res.confirm) {
+					try {
+						await personalCategoryApi.delete(id);
+						uni.showToast({ title: '删除成功', icon: 'none' });
+						loadCategories();
+					} catch (e) { /* 拦截器处理 */ }
+				}
+			}
+		});
+	}
 };
+
+onShow(() => { loadCategories(); });
 </script>
 
 <style lang="scss" scoped>

@@ -1,5 +1,10 @@
 <template>
 	<view class="mode-select-container">
+		<!-- 从"我的"页面进入时显示返回按钮 -->
+		<view class="back-btn" v-if="fromPerson" @click="goBack">
+			<tn-icon name="left" size="44" color="#1c1c1e"></tn-icon>
+		</view>
+
 		<view class="title-section">
 			<text class="main-title">欢迎使用</text>
 			<text class="subtitle">请选择您的记账方式</text>
@@ -30,40 +35,54 @@
 		</view>
 
 		<view class="footer-text">
-			<text>随时可以在 "我的" -> "设置" 中切换模式</text>
+			<text>随时可以在 "我的" -> "模式切换" 中切换</text>
 		</view>
 	</view>
 </template>
 
 <script setup>
 	import {
-		onMounted
+		ref
 	} from 'vue';
+	import { onLoad } from '@dcloudio/uni-app';
+	import { personalCategoryApi } from '@/api/personal_category';
+	import { personalAccountApi } from '@/api/personal_account';
+
+	const fromPerson = ref(false);
+
+	onLoad((options) => {
+		if (options.from === 'person') fromPerson.value = true;
+	});
+
+	const goBack = () => {
+		uni.navigateBack();
+	};
 
 	const selectMode = (mode) => {
-		// 模拟震动反馈，提升交互体验
 		uni.vibrateShort();
+		uni.setStorageSync('app_mode', mode);
 
-		// 此处为静态演示，后续将替换为真实逻辑
 		uni.showToast({
 			title: `已选择: ${mode === 'work' ? '工地记工' : '个人记账'}`,
 			icon: 'none'
 		});
 
-		// 假设 personal/dashboard 页面已创建
 		const url = mode === 'work' ? '/pages/index/index' : '/pages/personal/dashboard';
 
-		// 使用 reLaunch 跳转到对应的主页
+		// 个人记账模式首次进入时初始化默认分类
+		if (mode === 'personal') {
+			Promise.all([
+				personalCategoryApi.init(),
+				personalAccountApi.init(),
+			]).catch(() => {});
+		}
+
 		setTimeout(() => {
 			uni.reLaunch({
 				url: url
 			});
-		}, 800); // 延迟跳转，让用户能看到点击效果
+		}, 800);
 	};
-
-	onMounted(() => {
-		// 可以在这里触发页面的入场动画
-	});
 </script>
 
 <style lang="scss" scoped>
@@ -88,6 +107,21 @@
 		background-color: #f7f7f8;
 		padding: 40rpx;
 		box-sizing: border-box;
+		position: relative;
+	}
+
+	.back-btn {
+		position: absolute;
+		top: calc(40rpx + var(--status-bar-height, 0px));
+		left: 30rpx;
+		width: 80rpx;
+		height: 80rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		background-color: rgba(255, 255, 255, 0.8);
+		box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
 	}
 
 	.title-section {

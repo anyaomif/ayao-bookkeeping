@@ -1,6 +1,6 @@
 <template>
 	<view class="person-container">
-		<ay-tabbar :currentTab="2" is-float text-only frosted></ay-tabbar>
+		<ay-tabbar :currentTab="2" is-float text-only frosted :mode="appMode"></ay-tabbar>
 		<!-- <view class="app-header-box"></view> -->
 		<!-- #ifndef H5, APP -->
 		<NavbarWrapper mode="transparent"></NavbarWrapper>
@@ -53,7 +53,14 @@
 
 		<!-- 功能菜单 -->
 		<view class="menu-list">
-			<view class="menu-item" @click="goToProject">
+			<view class="menu-item" @click="goToModeSelect">
+				<view class="left">
+					<tn-icon name="right-double" class="iconfont" color="#ff6700"></tn-icon>
+					<text>模式切换</text>
+				</view>
+				<text class="iconfont icon-right"></text>
+			</view>
+			<view class="menu-item" @click="goToProject" v-if="appMode === 'work'">
 				<view class="left">
 					<tn-icon name="order" class="iconfont" color="#ff6700"></tn-icon>
 					<text>账本管理</text>
@@ -63,7 +70,7 @@
 			<view class="menu-item" @click="goToAccountSettings">
 				<view class="left">
 					<tn-icon name="set" class="iconfont" color="#ff6700"></tn-icon>
-					<text>账户设置</text>
+					<text>用户设置</text>
 				</view>
 				<text class="iconfont icon-right"></text>
 			</view>
@@ -84,9 +91,7 @@
 		onShow
 	} from '@dcloudio/uni-app'
 	import {
-		nextTick,
 		ref,
-		onMounted,
 		onUnmounted
 	} from 'vue'
 	import {
@@ -114,6 +119,7 @@
 	// 添加金额显示控制相关的状态
 	const isAmountHidden = ref(true)
 	const temporaryShow = ref(false)
+	const appMode = ref('work')
 	let hideTimeout = null
 
 	// 从缓存读取设置
@@ -172,10 +178,16 @@
 		}
 	}
 
+	const goToModeSelect = () => {
+		uni.navigateTo({ url: '/pages/mode/select?from=person' })
+	}
+
 	const goToProject = () => {
-		uni.navigateTo({
-			url: '/pages/project/list'
-		})
+		uni.navigateTo({ url: '/pages/project/list' })
+	}
+
+	const goToAccounts = () => {
+		uni.navigateTo({ url: '/pages/personal/accounts' })
 	}
 
 	// 获取用户信息
@@ -222,6 +234,7 @@
 	})
 
 	onShow(() => {
+		appMode.value = uni.getStorageSync('app_mode') || 'work';
 		loadUserSettings()
 		getUserInfo()
 		getWorkStats()

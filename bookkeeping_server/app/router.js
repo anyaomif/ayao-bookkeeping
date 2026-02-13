@@ -48,6 +48,30 @@ module.exports = app => {
   router.post('/api/check-update', checkUpdateSchema, controller.home.checkUpdate);
   router.post('/upload', jwt, controller.upload.upload);
 
+  // ========== 个人记账模块 ==========
+  // 账户
+  router.post('/api/personal/accounts/init', jwt, controller.personalAccount.init);
+  router.post('/api/personal/accounts', jwt, controller.personalAccount.create);
+  router.get('/api/personal/accounts', jwt, controller.personalAccount.index);
+  router.get('/api/personal/accounts/:id', jwt, controller.personalAccount.show);
+  router.put('/api/personal/accounts/:id', jwt, controller.personalAccount.update);
+  router.delete('/api/personal/accounts/:id', jwt, controller.personalAccount.destroy);
+
+  // 分类
+  router.post('/api/personal/categories/init', jwt, controller.personalCategory.init);
+  router.get('/api/personal/categories', jwt, controller.personalCategory.index);
+  router.post('/api/personal/categories', jwt, controller.personalCategory.create);
+  router.put('/api/personal/categories/:id', jwt, controller.personalCategory.update);
+  router.delete('/api/personal/categories/:id', jwt, controller.personalCategory.destroy);
+
+  // 交易
+  router.post('/api/personal/transactions', jwt, controller.personalTransaction.create);
+  router.get('/api/personal/transactions', jwt, controller.personalTransaction.index);
+  router.get('/api/personal/transactions/:id', jwt, controller.personalTransaction.show);
+  router.put('/api/personal/transactions/:id', jwt, controller.personalTransaction.update);
+  router.delete('/api/personal/transactions/:id', jwt, controller.personalTransaction.destroy);
+  router.get('/api/personal/statistics', jwt, controller.personalTransaction.statistics);
+
   // 用户
   router.post('/api/user/register', registerSchema, controller.user.register);
   router.post('/api/user/login', loginSchema, controller.user.login);

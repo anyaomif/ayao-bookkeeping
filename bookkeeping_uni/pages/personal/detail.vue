@@ -62,7 +62,7 @@
 		</view>
 
 		<!-- 底部 TabBar -->
-		<ay-tabbar :currentTab="1" is-float text-only frosted></ay-tabbar>
+		<ay-tabbar :currentTab="1" is-float text-only frosted mode="personal"></ay-tabbar>
 
 		<!-- 筛选弹层 -->
 		<ay-popup v-model="showFilterPopup" position="bottom" :duration="300" draggable show-drag-handle>
@@ -100,6 +100,8 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
+import { personalTransactionApi } from '@/api/personal_transaction';
 
 const currentYear = ref(new Date().getFullYear());
 const currentMonth = ref(new Date().getMonth() + 1);
@@ -107,80 +109,74 @@ const showMonthPicker = ref(false);
 const showFilterPopup = ref(false);
 
 const swipeOptions = ref([
-	{
-		text: '编辑',
-		style: {
-			backgroundColor: '#007aff',
-		}
-	},
-	{
-		text: '删除',
-		style: {
-			backgroundColor: '#ff3b30',
-		}
+	{ text: '编辑', style: { backgroundColor: '#007aff' } },
+	{ text: '删除', style: { backgroundColor: '#ff3b30' } },
+]);
+
+const mockTransactions = ref([]);
+
+const loadData = async () => {
+	try {
+		const res = await personalTransactionApi.getList({
+			year: currentYear.value, month: currentMonth.value, pageSize: 100,
+		});
+		if (res.success) mockTransactions.value = res.data.list;
+	} catch (e) { /* 拦截器处理 */ }
+};
+
+const openFilterPopup = () => { showFilterPopup.value = true; };
+
+const handleSwipeClick = async (event, id) => {
+	if (event.index === 0) {
+		// 编辑：跳转到 form 页面（后续可扩展编辑模式）
+		uni.showToast({ title: '编辑功能开发中', icon: 'none' });
+	} else {
+		uni.showModal({
+			title: '确认删除', content: '确定要删除该记录吗？',
+			success: async (res) => {
+				if (res.confirm) {
+					try {
+						await personalTransactionApi.delete(id);
+						uni.showToast({ title: '删除成功', icon: 'none' });
+						loadData();
+					} catch (e) { /* 拦截器处理 */ }
+				}
+			}
+		});
 	}
-]);
-
-// 扩展后的静态数据
-const mockTransactions = ref([
-	{ id: 1, type: 'expense', amount: 28.00, category: { name: '午餐', icon: 'eat', color: '#ff9f0a' }, notes: '公司楼下简餐', date: '2023-10-28' },
-	{ id: 2, type: 'expense', amount: 15.00, category: { name: '地铁', icon: 'car', color: '#5ac8fa' }, notes: '', date: '2023-10-28' },
-	{ id: 3, type: 'income', amount: 500.00, category: { name: '兼职', icon: 'fire', color: '#34c759' }, notes: '设计稿件', date: '2023-10-28' },
-	{ id: 4, type: 'expense', amount: 188.00, category: { name: '晚餐', icon: 'eat', color: '#ff9f0a' }, notes: '家庭聚餐', date: '2023-10-27' },
-	{ id: 5, type: 'expense', amount: 79.00, category: { name: '日用品', icon: 'shop', color: '#af52de' }, notes: '超市购物', date: '2023-10-27' },
-	{ id: 6, type: 'expense', amount: 5999.00, category: { name: '手机数码', icon: 'mobile', color: '#ff3b30' }, notes: 'iPhone 15 Pro', date: '2023-10-26' },
-	{ id: 7, type: 'income', amount: 12000.00, category: { name: '工资', icon: 'fire', color: '#34c759' }, notes: '', date: '2023-10-25' },
-	{ id: 8, type: 'expense', amount: 250.00, category: { name: '加油', icon: 'science', color: '#ff2d55' }, notes: '', date: '2023-10-22' },
-	{ id: 9, type: 'expense', amount: 35.00, category: { name: '电影', icon: 'ticket', color: '#007aff' }, notes: '《坚如磐石》', date: '2023-10-22' },
-]);
-
-const openFilterPopup = () => {
-	showFilterPopup.value = true;
 };
 
-const handleSwipeClick = (event, id) => {
-	const { index } = event;
-	const action = index === 0 ? '编辑' : '删除';
-	uni.showToast({
-		title: `${action}了ID为 ${id} 的记录`,
-		icon: 'none'
-	});
-};
-
-// 计算总收入和总支出
 const summary = computed(() => {
 	return mockTransactions.value.reduce((acc, item) => {
-		if (item.type === 'income') {
-			acc.income += item.amount;
-		} else {
-			acc.expense += item.amount;
-		}
+		const amt = Number(item.amount);
+		if (item.type === 'income') acc.income += amt;
+		else if (item.type === 'expense') acc.expense += amt;
 		return acc;
 	}, { income: 0, expense: 0 });
 });
 
-// 格式化金额
 const formatAmount = (num, type = null) => {
-	const formatted = parseFloat(num).toFixed(2);
+	const formatted = parseFloat(num || 0).toFixed(2);
 	if (type === 'income') return `+${formatted}`;
-	// 支出默认不带负号，颜色区分
 	if (type === 'expense') return `-${formatted}`;
 	return formatted;
 };
 
-// 按日期分组交易
 const groupedTransactions = computed(() => {
 	const groups = {};
 	mockTransactions.value.forEach(item => {
-		if (!groups[item.date]) {
-			groups[item.date] = { date: formatDateLabel(item.date), items: [], summary: { expense: 0, income: 0 } };
+		const dateKey = item.date;
+		if (!groups[dateKey]) {
+			groups[dateKey] = { date: formatDateLabel(dateKey), items: [], summary: { expense: 0, income: 0 } };
 		}
-		groups[item.date].items.push(item);
-		if (item.type === 'expense') {
-			groups[item.date].summary.expense += item.amount;
-		} else {
-			groups[item.date].summary.income += item.amount;
-		}
+		const txItem = {
+			id: item.id, type: item.type, amount: Number(item.amount),
+			notes: item.remark || '',
+			category: item.category || { name: item.type === 'expense' ? '支出' : '收入', icon: 'eat', color: '#ff9f0a' },
+		};
+		groups[dateKey].items.push(txItem);
+		if (item.type === 'expense') groups[dateKey].summary.expense += txItem.amount;
+		else groups[dateKey].summary.income += txItem.amount;
 	});
 	return Object.values(groups);
 });
@@ -190,16 +186,15 @@ const formatDateLabel = (dateString) => {
 	const today = new Date();
 	const yesterday = new Date(today);
 	yesterday.setDate(yesterday.getDate() - 1);
-
 	const month = (date.getMonth() + 1).toString().padStart(2, '0');
 	const day = date.getDate().toString().padStart(2, '0');
 	const dayOfWeek = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][date.getDay()];
-
 	if (date.toDateString() === today.toDateString()) return `今天 ${month}月${day}日 ${dayOfWeek}`;
 	if (date.toDateString() === yesterday.toDateString()) return `昨天 ${month}月${day}日 ${dayOfWeek}`;
-
 	return `${month}月${day}日 ${dayOfWeek}`;
 };
+
+onShow(() => { loadData(); });
 </script>
 
 <style lang="scss" scoped>

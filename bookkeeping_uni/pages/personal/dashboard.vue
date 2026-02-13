@@ -3,8 +3,8 @@
 		<!-- 自定义导航栏 -->
 		<NavbarWrapper sticky>
 			<view class="custom-navbar">
-				<view class.left>
-					<tn-icon name="list" size="44"></tn-icon>
+				<view class="nav-left" @click="showMenu = true">
+					<tn-icon name="menu-list" size="44"></tn-icon>
 				</view>
 				<view class="month-selector" @click="showMonthPicker = true">
 					<text class="month-text">{{ currentYear }}年{{ currentMonth }}月</text>
@@ -68,52 +68,114 @@
 		</view>
 		
 		<!-- 底部 TabBar -->
-		<ay-tabbar :currentTab="0" is-float text-only frosted></ay-tabbar>
+		<ay-tabbar :currentTab="0" is-float text-only frosted mode="personal"></ay-tabbar>
+
+		<!-- 月份选择弹层 -->
+		<ay-popup v-model="showMonthPicker" position="bottom" :duration="300" draggable show-drag-handle>
+			<view class="popup-content">
+				<view class="popup-header">
+					<text class="popup-title">选择月份</text>
+				</view>
+				<view class="month-picker-body">
+					<view class="year-row">
+						<view class="year-arrow" @click="pickerYear--">
+							<tn-icon name="left" size="40" color="#333"></tn-icon>
+						</view>
+						<text class="year-text">{{ pickerYear }}年</text>
+						<view class="year-arrow" @click="pickerYear++">
+							<tn-icon name="right" size="40" color="#333"></tn-icon>
+						</view>
+					</view>
+					<view class="month-grid">
+						<view class="month-item" v-for="m in 12" :key="m"
+							:class="{ active: pickerYear === currentYear && m === currentMonth }"
+							@click="selectMonth(m)">
+							<text>{{ m }}月</text>
+						</view>
+					</view>
+				</view>
+			</view>
+		</ay-popup>
+
+		<!-- 管理菜单弹层 -->
+		<ay-popup v-model="showMenu" position="bottom" :duration="300" draggable show-drag-handle>
+			<view class="popup-content">
+				<view class="popup-header">
+					<text class="popup-title">管理</text>
+				</view>
+				<view class="menu-list">
+					<view class="menu-item" @click="goTo('/pages/personal/accounts')">
+						<tn-icon name="bankcard" size="44" color="#ff6700"></tn-icon>
+						<text>账户管理</text>
+					</view>
+					<view class="menu-item" @click="goTo('/pages/personal/categories')">
+						<tn-icon name="menu-classify" size="44" color="#ff6700"></tn-icon>
+						<text>分类管理</text>
+					</view>
+				</view>
+			</view>
+		</ay-popup>
 	</view>
 </template>
 
 <script setup>
 	import { ref, computed } from 'vue';
+	import { onShow } from '@dcloudio/uni-app';
+	import { personalTransactionApi } from '@/api/personal_transaction';
 
 	const currentYear = ref(new Date().getFullYear());
 	const currentMonth = ref(new Date().getMonth() + 1);
 	const showMonthPicker = ref(false);
+	const showMenu = ref(false);
+	const pickerYear = ref(new Date().getFullYear());
 
-	// 静态数据
-	const summaryData = ref({
-		expense: 6170.50,
-		income: 12000.00,
-		balance: 5829.50,
-	});
+	const summaryData = ref({ expense: 0, income: 0, balance: 0 });
+	const mockTransactions = ref([]);
 
-	const mockTransactions = ref([
-        { id: 1, type: 'expense', amount: 59.00, category: { name: '晚餐', icon: 'eat', color: '#5ac8fa' }, notes: '海底捞', date: '2023-10-27' },
-		{ id: 2, type: 'expense', amount: 12.00, category: { name: '午餐', icon: 'shop', color: '#ff9500' }, notes: '公司食堂', date: '2023-10-27' },
-		{ id: 3, type: 'expense', amount: 5999.00, category: { name: '手机数码', icon: 'mobile', color: '#af52de' }, notes: 'iPhone 15 Pro', date: '2023-10-26' },
-		{ id: 5, type: 'expense', amount: 100.00, category: { name: '加油', icon: 'science', color: '#ff2d55' }, notes: '', date: '2023-09-05' },
-    ]);
+	const loadData = async () => {
+		try {
+			const [statsRes, listRes] = await Promise.all([
+				personalTransactionApi.getStatistics({ year: currentYear.value, month: currentMonth.value }),
+				personalTransactionApi.getList({ year: currentYear.value, month: currentMonth.value, pageSize: 50 }),
+			]);
+			if (statsRes.success) {
+				summaryData.value = {
+					expense: statsRes.data.total_expense,
+					income: statsRes.data.total_income,
+					balance: statsRes.data.balance,
+				};
+			}
+			if (listRes.success) {
+				mockTransactions.value = listRes.data.list;
+			}
+		} catch (e) { /* 拦截器处理 */ }
+	};
 
-	// 格式化金额
 	const formatAmount = (num, type = null) => {
-		const formatted = parseFloat(num).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+		const formatted = parseFloat(num || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 		if (type === 'income') return `+${formatted}`;
 		if (type === 'expense') return `-${formatted}`;
 		return formatted;
 	};
 
-	// 按日期分组交易
 	const groupedTransactions = computed(() => {
 		const groups = {};
 		mockTransactions.value.forEach(item => {
-			if (!groups[item.date]) {
-				groups[item.date] = { date: formatDateLabel(item.date), items: [], summary: { expense: 0, income: 0 } };
+			const dateKey = item.date;
+			if (!groups[dateKey]) {
+				groups[dateKey] = { date: formatDateLabel(dateKey), items: [], summary: { expense: 0, income: 0 } };
 			}
-			groups[item.date].items.push(item);
-			if (item.type === 'expense') {
-				groups[item.date].summary.expense += item.amount;
-			} else {
-				groups[item.date].summary.income += item.amount;
-			}
+			// 适配后端字段：用 category_id 关联的分类信息可能不在 item 上，做兼容
+			const txItem = {
+				id: item.id,
+				type: item.type,
+				amount: Number(item.amount),
+				notes: item.remark || '',
+				category: item.category || { name: item.type === 'expense' ? '支出' : '收入', icon: 'eat', color: '#ff9f0a' },
+			};
+			groups[dateKey].items.push(txItem);
+			if (item.type === 'expense') groups[dateKey].summary.expense += txItem.amount;
+			else if (item.type === 'income') groups[dateKey].summary.income += txItem.amount;
 		});
 		return Object.values(groups);
 	});
@@ -123,20 +185,31 @@
 		const today = new Date();
 		const yesterday = new Date(today);
 		yesterday.setDate(yesterday.getDate() - 1);
-		
 		const month = date.getMonth() + 1;
 		const day = date.getDate();
 		const dayOfWeek = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][date.getDay()];
-		
 		if (date.toDateString() === today.toDateString()) return `今天 ${dayOfWeek}`;
 		if (date.toDateString() === yesterday.toDateString()) return `昨天 ${dayOfWeek}`;
-		
 		return `${month}月${day}日 ${dayOfWeek}`;
 	};
 
 	const addTransaction = () => {
 		uni.navigateTo({ url: '/pages/personal/form' })
 	};
+
+	const selectMonth = (m) => {
+		currentYear.value = pickerYear.value;
+		currentMonth.value = m;
+		showMonthPicker.value = false;
+		loadData();
+	};
+
+	const goTo = (url) => {
+		showMenu.value = false;
+		uni.navigateTo({ url });
+	};
+
+	onShow(() => { loadData(); });
 </script>
 
 <style lang="scss" scoped>
@@ -290,5 +363,49 @@
 			&.expense { color: #333; }
 			&.income { color: #34c759; }
 		}
+	}
+
+	/* 弹层样式 */
+	.popup-content {
+		padding: 12rpx 30rpx 40rpx 30rpx;
+		padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+	}
+	.popup-header {
+		display: flex; justify-content: center; padding: 0 0 32rpx 0;
+	}
+	.popup-title {
+		font-size: 32rpx; font-weight: 600; color: #1c1c1e;
+	}
+
+	.month-picker-body {
+		padding: 0 10rpx;
+	}
+	.year-row {
+		display: flex; align-items: center; justify-content: center; gap: 40rpx; margin-bottom: 30rpx;
+	}
+	.year-arrow {
+		width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center;
+		border-radius: 50%; background: #f6f6f6;
+		&:active { background: #eee; }
+	}
+	.year-text { font-size: 34rpx; font-weight: 600; color: #1c1c1e; }
+	.month-grid {
+		display: grid; grid-template-columns: repeat(4, 1fr); gap: 20rpx;
+	}
+	.month-item {
+		height: 80rpx; display: flex; align-items: center; justify-content: center;
+		border-radius: 16rpx; background: #f6f6f6; font-size: 30rpx; color: #333;
+		transition: all 0.2s;
+		&:active { transform: scale(0.96); }
+		&.active { background: #ff6700; color: #fff; font-weight: 600; }
+	}
+
+	.menu-list {
+		display: flex; flex-direction: column; gap: 16rpx;
+	}
+	.menu-item {
+		display: flex; align-items: center; gap: 24rpx; padding: 24rpx 20rpx;
+		background: #f6f6f6; border-radius: 20rpx; font-size: 30rpx; color: #1c1c1e;
+		&:active { background: #eee; }
 	}
 </style>

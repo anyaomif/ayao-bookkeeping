@@ -27,31 +27,33 @@
 export default {
   name: 'ay-tabbar',
   props: {
-    // 当前选中的tab索引
     currentTab: {
       type: Number,
       default: 0
     },
-    // 是否悬浮
     isFloat: {
       type: Boolean,
       default: false
     },
-    // 是否仅显示文字
     textOnly: {
       type: Boolean,
       default: false
     },
-    // 是否启用毛玻璃效果
     frosted: {
       type: Boolean,
       default: false
+    },
+    // 模式：work(工地) / personal(个人记账)
+    mode: {
+      type: String,
+      default: 'work'
     }
   },
   data() {
     return {
       visible: true,
-      tabList: [
+      currentMode: 'work',
+      workTabList: [
         {
           text: '首页',
           iconPath: '/static/tabbar/home.png',
@@ -70,21 +72,61 @@ export default {
           selectedIconPath: '/static/tabbar/user-active.png',
           pagePath: '/pages/person/person'
         }
+      ],
+      personalTabList: [
+        {
+          text: '首页',
+          iconPath: '/static/tabbar/home.png',
+          selectedIconPath: '/static/tabbar/home-active.png',
+          pagePath: '/pages/personal/dashboard'
+        },
+        {
+          text: '明细',
+          iconPath: '/static/tabbar/stats.png',
+          selectedIconPath: '/static/tabbar/stats-active.png',
+          pagePath: '/pages/personal/detail'
+        },
+        {
+          text: '我的',
+          iconPath: '/static/tabbar/user.png',
+          selectedIconPath: '/static/tabbar/user-active.png',
+          pagePath: '/pages/person/person'
+        }
       ]
+    }
+  },
+  watch: {
+    mode(val) {
+      this.currentMode = val;
+    }
+  },
+  computed: {
+    tabList() {
+      return this.currentMode === 'personal' ? this.personalTabList : this.workTabList;
     }
   },
   methods: {
     switchTab(index) {
       this.$emit('update:currentTab', index)
-      uni.switchTab({
-        url: this.tabList[index].pagePath
-      })
+      const url = this.tabList[index].pagePath;
+      if (this.currentMode === 'personal') {
+        uni.reLaunch({ url });
+      } else {
+        uni.switchTab({ url });
+      }
+    },
+    loadMode() {
+      this.currentMode = uni.getStorageSync('app_mode') || 'work';
     }
   },
   mounted() {
+    this.loadMode();
     uni.$on('toggleTabbar', (show) => {
       this.visible = show
     })
+  },
+  activated() {
+    this.loadMode();
   },
   beforeUnmount() {
     uni.$off('toggleTabbar')

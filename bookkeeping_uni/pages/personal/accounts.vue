@@ -93,51 +93,43 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
+import { personalAccountApi } from '@/api/personal_account';
 
 const showPopup = ref(false);
-const popupMode = ref('add'); // 'add' | 'edit'
+const popupMode = ref('add');
 
 const accountForm = ref({
-	id: null,
-	name: '',
-	balance: '',
-	icon: 'wallet',
-	color: '#ff6700'
+	id: null, name: '', balance: '', icon: 'bankcard', color: '#ff6700'
 });
 
-const iconOptions = ref(['wallet', 'card', 'wechat', 'alipay', 'bill', 'money']);
+const iconOptions = ref(['bankcard', 'money', 'shopbag', 'piggy-bank', 'receipt', 'lucky-money']);
 const colorOptions = ref(['#ff6700', '#007aff', '#34c759', '#ff9f0a', '#af52de', '#ff3b30', '#5ac8fa', '#8e8e93']);
 
-const accounts = ref([
-	{ id: 1, name: '现金', balance: 1250.50, icon: 'wallet', color: '#ff9f0a' },
-	{ id: 2, name: '微信钱包', balance: 873.21, icon: 'wechat', color: '#34c759' },
-	{ id: 3, name: '支付宝', balance: 2315.88, icon: 'alipay', color: '#007aff' },
-	{ id: 4, name: '招商银行储蓄卡', balance: 10240.15, icon: 'card', color: '#ff3b30' },
-	{ id: 5, name: '信用卡', balance: -5200.00, icon: 'bill', color: '#8e8e93' },
-]);
+const accounts = ref([]);
 
 const swipeOptions = ref([
-	{
-		text: '编辑',
-		style: {
-			backgroundColor: '#007aff',
-		}
-	},
-	{
-		text: '删除',
-		style: {
-			backgroundColor: '#ff3b30',
-		}
-	}
+	{ text: '编辑', style: { backgroundColor: '#007aff' } },
+	{ text: '删除', style: { backgroundColor: '#ff3b30' } },
 ]);
 
-const totalAssets = computed(() => accounts.value.reduce((total, acc) => total + acc.balance, 0));
+const totalAssets = computed(() => accounts.value.reduce((total, acc) => total + Number(acc.balance), 0));
 
 const formatAmount = (num, type = null) => {
-	if (typeof num !== 'number') return '0.00';
-	const formatted = num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+	const n = Number(num);
+	if (isNaN(n)) return '0.00';
+	const formatted = n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 	if (type === 'income') return `+${formatted}`;
 	return formatted;
+};
+
+const loadAccounts = async () => {
+	try {
+		const res = await personalAccountApi.getList();
+		if (res.success) accounts.value = res.data.list;
+	} catch (e) {
+		uni.showToast({ title: '获取账户失败', icon: 'none' });
+	}
 };
 
 const goBack = () => uni.navigateBack();
@@ -145,45 +137,56 @@ const goBack = () => uni.navigateBack();
 const openAccountPopup = (mode = 'add', account = null) => {
 	popupMode.value = mode;
 	if (mode === 'add') {
-		accountForm.value = {
-			id: null,
-			name: '',
-			balance: '',
-			icon: 'wallet',
-			color: '#ff6700'
-		};
+		accountForm.value = { id: null, name: '', balance: '', icon: 'bankcard', color: '#ff6700' };
 	} else {
-		accountForm.value = { ...account };
+		accountForm.value = { ...account, balance: String(account.balance) };
 	}
 	showPopup.value = true;
 };
 
-const saveAccount = () => {
-	uni.showToast({
-		title: popupMode.value === 'add' ? '添加成功' : '编辑成功',
-		icon: 'none'
-	});
-	showPopup.value = false;
+const saveAccount = async () => {
+	const { id, name, balance, icon, color } = accountForm.value;
+	if (!name.trim()) return uni.showToast({ title: '请输入账户名称', icon: 'none' });
+
+	try {
+		const payload = { name: name.trim(), balance: Number(balance) || 0, icon, color };
+		if (popupMode.value === 'add') {
+			await personalAccountApi.create(payload);
+		} else {
+			await personalAccountApi.update(id, payload);
+		}
+		uni.showToast({ title: popupMode.value === 'add' ? '添加成功' : '编辑成功', icon: 'none' });
+		showPopup.value = false;
+		loadAccounts();
+	} catch (e) {
+		// 错误已由 request 拦截器处理
+	}
 };
 
 const handleSwipeClick = (event, id) => {
 	const accountToEdit = accounts.value.find(a => a.id === id);
 	if (!accountToEdit) return;
 
-	if (event.index === 0) { // 编辑
+	if (event.index === 0) {
 		openAccountPopup('edit', accountToEdit);
-	} else { // 删除
+	} else {
 		uni.showModal({
 			title: '确认删除',
 			content: `确定要删除账户 "${accountToEdit.name}" 吗？`,
-			success: (res) => {
+			success: async (res) => {
 				if (res.confirm) {
-					uni.showToast({ title: '删除成功', icon: 'none' });
+					try {
+						await personalAccountApi.delete(id);
+						uni.showToast({ title: '删除成功', icon: 'none' });
+						loadAccounts();
+					} catch (e) { /* 拦截器处理 */ }
 				}
 			}
-		})
+		});
 	}
 };
+
+onShow(() => { loadAccounts(); });
 </script>
 
 <style lang="scss" scoped>
