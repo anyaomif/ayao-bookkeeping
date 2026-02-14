@@ -51,13 +51,13 @@ const request = (options = {}) => {
           })
           reject(new Error('未授权，请重新登录'))
         }
-        // 其他错误
+        // 业务错误（400、403、404、500 等）
         else {
           uni.showToast({
-            title: '网络错误',
+            title: data.message || '请求失败',
             icon: 'none'
           })
-          reject(new Error('网络错误'))
+          reject(data)
         }
       },
       

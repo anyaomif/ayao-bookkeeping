@@ -53,8 +53,7 @@ module.exports = app => {
     underscored: true,
   });
 
-  // 自动同步数据库结构
-  AppVersion.sync({ alter: true });
+  AppVersion.sync();
 
   return AppVersion;
 };

@@ -239,7 +239,7 @@ onShow(() => { loadAccounts(); });
 <style lang="scss" scoped>
 .accounts-container {
 	background-color: #f6f6f6;
-	min-height: 100vh;
+	min-height: 100vh; min-height: 100dvh;
 }
 
 .custom-navbar {

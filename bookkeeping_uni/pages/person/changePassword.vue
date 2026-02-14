@@ -114,7 +114,7 @@
 
 <style lang="scss">
 	.change-password-container {
-		min-height: 100vh;
+		min-height: 100vh; min-height: 100dvh;
 		background-color: #f8f9fc;
 		position: relative;
 

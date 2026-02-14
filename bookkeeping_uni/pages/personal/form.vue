@@ -31,14 +31,14 @@
 
     <!-- 金额显示区 -->
     <view class="amount-section">
-      <view class="amount-display" @click="openKeyboard">
+      <view class="amount-display">
+        <view class="expression-row" v-if="expression">
+          <text class="expression-text">{{ expression }}</text>
+        </view>
         <view class="amount-row">
           <text class="currency">¥</text>
           <text class="major">{{ majorAmount }}</text>
           <text class="minor">.{{ minorAmount }}</text>
-        </view>
-        <view class="tap-hint">
-          <text>点击输入金额</text>
         </view>
       </view>
     </view>
@@ -96,39 +96,59 @@
     <!-- 备注输入 -->
     <view class="remark-section">
       <view class="remark-card">
-        <ay-textarea v-model="remark" placeholder="添加备注（可选）" :maxlength="60" rows="3" :border="false"></ay-textarea>
+        <ay-textarea v-model="remark" placeholder="添加备注（可选）" :maxlength="60" rows="3" :border="false" style="border-radius: 24rpx;"></ay-textarea>
       </view>
     </view>
 
-    <!-- 金额键盘弹层 -->
-    <ay-popup v-model="showKeyboard" position="bottom" :duration="250" draggable show-drag-handle>
-      <view class="keyboard-popup">
-        <view class="toolbar">
-          <view class="toolbar-actions">
-            <view class="spacer"></view>
-            <view class="done" @click="closeKeyboard">完成</view>
+    <!-- 金额键盘（固定底部） -->
+    <view class="keyboard-fixed" :class="{ 'kb-hidden': !keyboardVisible }">
+      <view class="keyboard-body">
+        <view class="keyboard-left">
+          <view class="key-row">
+            <view class="key" @click="onKeyPress('1')"><text>1</text></view>
+            <view class="key" @click="onKeyPress('2')"><text>2</text></view>
+            <view class="key" @click="onKeyPress('3')"><text>3</text></view>
+          </view>
+          <view class="key-row">
+            <view class="key" @click="onKeyPress('4')"><text>4</text></view>
+            <view class="key" @click="onKeyPress('5')"><text>5</text></view>
+            <view class="key" @click="onKeyPress('6')"><text>6</text></view>
+          </view>
+          <view class="key-row">
+            <view class="key" @click="onKeyPress('7')"><text>7</text></view>
+            <view class="key" @click="onKeyPress('8')"><text>8</text></view>
+            <view class="key" @click="onKeyPress('9')"><text>9</text></view>
+          </view>
+          <view class="key-row">
+            <view class="key" @click="onKeyPress('.')"><text>.</text></view>
+            <view class="key" @click="onKeyPress('0')"><text>0</text></view>
+            <view class="key" @click="onKeyPress('del')">
+              <tn-icon name="delete" size="44" color="#333"></tn-icon>
+            </view>
           </view>
         </view>
-        <view class="key-row" v-for="(row, rIdx) in keypad" :key="rIdx">
-          <view class="key" v-for="(key, kIdx) in row" :key="kIdx" :class="key.class" @click="onKeyPress(key)">
-            <text v-if="key.type === 'text'">{{ key.label }}</text>
-            <tn-icon v-else-if="key.type === 'icon'" :name="key.icon" size="44" color="#333"></tn-icon>
+        <view class="keyboard-right">
+          <view class="key key-collapse" @click="collapseKeyboard">
+            <tn-icon name="down" size="40" color="#333"></tn-icon>
           </view>
-        </view>
-        <view class="popup-action">
-          <ay-button block round @click="submitMock">{{ isEdit ? '保存修改' : '记一笔' }}</ay-button>
+          <view class="key key-func" @click="onKeyPress('+')"><text>+</text></view>
+          <view class="key key-func" @click="onKeyPress('-')"><text>−</text></view>
+          <view class="key key-submit" @click="onKeyPress('=')">
+            <text v-if="hasOperator">=</text>
+            <text v-else>{{ isEdit ? '保存' : '记一笔' }}</text>
+          </view>
         </view>
       </view>
-    </ay-popup>
+    </view>
 
-    <!-- 页面底部按钮（键盘未展开时显示） -->
-    <view class="bottom-action" v-show="!showKeyboard">
-      <ay-button block round @click="submitMock">{{ isEdit ? '保存修改' : '记一笔' }}</ay-button>
+    <!-- 悬浮展开按钮 -->
+    <view class="fab-btn" :class="{ 'fab-hidden': keyboardVisible }" @click="expandKeyboard">
+      <tn-icon name="edit" size="48" color="#fff"></tn-icon>
     </view>
 
     <!-- 分类选择弹层 -->
     <ay-popup v-model="showCategory" position="bottom" :duration="300" draggable show-drag-handle>
-      <view class="popup-content" style="height: 80vh;">
+      <view class="popup-content" style="height: 60vh;">
         <view class="popup-header">
           <text class="popup-title">选择支出分类</text>
         </view>
@@ -203,13 +223,20 @@
               <text class="option-text">昨天</text>
             </view>
           </view>
-          <view class="date-option" @click="setDateTo('custom')">
+          <view class="date-option" @click="openCalendar">
             <view class="option-left">
               <tn-icon name="calendar" size="44" color="#8e8e93"></tn-icon>
-              <text class="option-text">选择其他日期</text>
+              <text class="option-text">更多日期</text>
             </view>
           </view>
         </view>
+      </view>
+    </ay-popup>
+
+    <!-- 日历弹层 -->
+    <ay-popup v-model="showCalendar" position="bottom" :duration="300" draggable show-drag-handle>
+      <view class="popup-content">
+        <ay-calendar v-if="showCalendar" startDate="2025-01-01" :endDate="todayStr" :showLunar="false" @date-selected="onCalendarSelect"></ay-calendar>
       </view>
     </ay-popup>
   </view>
@@ -217,7 +244,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { onShow, onLoad } from '@dcloudio/uni-app'
+import { onLoad } from '@dcloudio/uni-app'
 import { personalCategoryApi } from '@/api/personal_category'
 import { personalAccountApi } from '@/api/personal_account'
 import { personalTransactionApi } from '@/api/personal_transaction'
@@ -232,7 +259,12 @@ const typeIndex = computed(() => {
   return map[currentType.value] || 0
 })
 const amount = ref('0')
+const expression = ref('')
+const operator = ref('')
+const firstOperand = ref('')
 const remark = ref('')
+
+const hasOperator = computed(() => !!operator.value)
 
 const selectedCategory = ref({ id: null, name: '请选择', icon: 'eat', color: '#ff9f0a' })
 const selectedAccount = ref({ id: null, name: '请选择', balance: 0 })
@@ -241,7 +273,8 @@ const currentDate = ref(new Date())
 const showCategory = ref(false)
 const showAccount = ref(false)
 const showDate = ref(false)
-const showKeyboard = ref(false)
+const showCalendar = ref(false)
+const keyboardVisible = ref(true)
 const activeMainCategory = ref('')
 
 const categories = ref({ expense: [], income: [], transfer: [] })
@@ -333,31 +366,56 @@ onLoad((options) => {
   loadData()
 })
 
-const keypad = ref([
-  [
-    { type: 'text', label: '1' },
-    { type: 'text', label: '2' },
-    { type: 'text', label: '3' }
-  ],
-  [
-    { type: 'text', label: '4' },
-    { type: 'text', label: '5' },
-    { type: 'text', label: '6' }
-  ],
-  [
-    { type: 'text', label: '7' },
-    { type: 'text', label: '8' },
-    { type: 'text', label: '9' }
-  ],
-  [
-    { type: 'text', label: '.' },
-    { type: 'text', label: '0' },
-    { type: 'icon', icon: 'delete' }
-  ]
-])
-
 const majorAmount = computed(() => amount.value.split('.')[0])
 const minorAmount = computed(() => (amount.value.split('.')[1] || '00').padEnd(2, '0').slice(0, 2))
+
+const calcResult = () => {
+  if (!operator.value || !firstOperand.value) return;
+  const a = parseFloat(firstOperand.value) || 0;
+  const b = parseFloat(amount.value) || 0;
+  let result = operator.value === '+' ? a + b : a - b;
+  if (result < 0) result = 0;
+  amount.value = String(parseFloat(result.toFixed(2)));
+  expression.value = '';
+  operator.value = '';
+  firstOperand.value = '';
+};
+
+const onKeyPress = (key) => {
+  if (key === 'del') {
+    if (amount.value.length <= 1) amount.value = '0';
+    else amount.value = amount.value.slice(0, -1);
+    return;
+  }
+  if (key === '+' || key === '-') {
+    if (operator.value) calcResult();
+    firstOperand.value = amount.value;
+    operator.value = key;
+    expression.value = `${amount.value} ${key === '+' ? '+' : '−'} `;
+    amount.value = '0';
+    return;
+  }
+  if (key === '=') {
+    if (operator.value) { calcResult(); return; }
+    submitMock();
+    return;
+  }
+  if (key === '.') {
+    if (amount.value.includes('.')) return;
+    amount.value += '.';
+    return;
+  }
+  if (amount.value === '0') amount.value = key;
+  else {
+    const hasDot = amount.value.includes('.');
+    if (!hasDot) amount.value += key;
+    else {
+      const dotIndex = amount.value.indexOf('.');
+      if (amount.value.length - dotIndex <= 2) amount.value += key;
+    }
+  }
+};
+
 const formatDisplayTime = computed(() => {
   const d = currentDate.value
   const today = new Date()
@@ -390,57 +448,28 @@ const setType = (t) => {
   }
 }
 
-const openKeyboard = () => {
-  showKeyboard.value = true
-}
-
-const closeKeyboard = () => {
-  showKeyboard.value = false
-}
-
 const goBack = () => {
   uni.navigateBack()
 }
 
-const onKeyPress = (key) => {
-  if (key.type === 'icon') {
-    // 删除
-    if (amount.value.length <= 1) amount.value = '0'
-    else amount.value = amount.value.slice(0, -1)
-    return
-  }
-  const val = key.label
-  if (val === '.') {
-    if (amount.value.includes('.')) return
-    amount.value += '.'
-    return
-  }
-  if (amount.value === '0') amount.value = val
-  else {
-    // 最多保留两位小数
-    const hasDot = amount.value.includes('.')
-    if (!hasDot) amount.value += val
-    else {
-      const dotIndex = amount.value.indexOf('.')
-      if (amount.value.length - dotIndex <= 2) amount.value += val
-    }
-  }
-}
+const collapseKeyboard = () => { keyboardVisible.value = false; }
+const expandKeyboard = () => { keyboardVisible.value = true; }
 
 const openCategory = () => {
-  showKeyboard.value = false
   showCategory.value = true
 }
 const openAccount = () => {
-  showKeyboard.value = false
   showAccount.value = true
 }
 const goAddAccount = () => {
   uni.navigateTo({ url: '/pages/personal/accounts' })
 }
 const openDate = () => {
-  showKeyboard.value = false
   showDate.value = true
+}
+const openCalendar = () => {
+  showDate.value = false
+  showCalendar.value = true
 }
 
 const selectMainCategory = (mainCategoryName) => {
@@ -449,25 +478,33 @@ const selectMainCategory = (mainCategoryName) => {
 }
 
 const selectSubCategory = (subCategory) => {
-  selectedCategory.value = subCategory;
   showCategory.value = false;
-  uni.vibrateShort();
+  setTimeout(() => {
+    selectedCategory.value = subCategory;
+  }, 50)
 }
 
 const selectParentCategory = () => {
   const data = activeMainCategoryData.value;
   if (data) {
-    selectedCategory.value = { id: data.id, name: data.name, icon: data.icon, color: data.color };
     showCategory.value = false;
-    uni.vibrateShort();
+    setTimeout(() => {
+      selectedCategory.value = { id: data.id, name: data.name, icon: data.icon, color: data.color };
+    }, 50)
   }
 }
 
 const selectAccount = (acc) => {
-  selectedAccount.value = acc
   showAccount.value = false
-  uni.vibrateShort();
+  setTimeout(() => {
+    selectedAccount.value = acc
+  }, 50)
 }
+
+const todayStr = computed(() => {
+  const t = new Date()
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`
+})
 
 const setDateTo = (type) => {
   const now = new Date()
@@ -476,12 +513,13 @@ const setDateTo = (type) => {
     const y = new Date(now)
     y.setDate(y.getDate() - 1)
     currentDate.value = y
-  } else {
-    // 静态阶段，直接提示
-    uni.showToast({ title: '日期选择器暂未接入', icon: 'none' })
   }
   showDate.value = false
-  uni.vibrateShort();
+}
+
+const onCalendarSelect = (date) => {
+  currentDate.value = date
+  showCalendar.value = false
 }
 
 const submitting = ref(false)
@@ -524,8 +562,7 @@ const submitMock = async () => {
 <style lang="scss" scoped>
 .form-container {
   background-color: #f6f6f6;
-  min-height: 100vh;
-  padding-bottom: 200rpx;
+  min-height: 100vh; min-height: 100dvh;
 }
 
 .custom-navbar {
@@ -626,11 +663,6 @@ const submitMock = async () => {
   box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
   padding: 30rpx 20rpx;
   text-align: center;
-  transition: all 0.2s ease;
-
-  &:active {
-    transform: scale(0.98);
-  }
 }
 
 .amount-row {
@@ -660,13 +692,6 @@ const submitMock = async () => {
   }
 }
 
-.tap-hint {
-  text {
-    font-size: 26rpx;
-    color: #8e8e93;
-  }
-}
-
 .info-section {
   padding: 0 30rpx 30rpx 30rpx;
   background-color: #f6f6f6;
@@ -683,7 +708,7 @@ const submitMock = async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 32rpx 28rpx;
+  padding: 20rpx 28rpx;
   transition: background-color 0.2s ease;
 
   &:active {
@@ -748,40 +773,80 @@ const submitMock = async () => {
   padding: 4rpx;
 }
 
-/* 旧固定键盘样式废弃，改为弹层 */
-
-.key-row {
-  display: flex;
-  gap: 12rpx;
-}
-
-.key {
-  flex: 1;
-  height: 108rpx;
-  background: #fff;
-  border-radius: 18rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 40rpx;
-  color: #1c1c1e;
-  margin-bottom: 12rpx;
-  transition: transform .08s ease, background .2s ease;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
-}
-
-.bottom-action {
+/* 固定底部键盘 */
+.keyboard-fixed {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 20rpx;
-  padding: 0 30rpx;
+  left: 0; right: 0; bottom: 0; z-index: 100;
+  padding: 12rpx 12rpx 0;
   padding-bottom: env(safe-area-inset-bottom);
+  background-color: #f0f0f0;
+  transform-origin: calc(100% - 90rpx) calc(100% - 80rpx);
+  transform: scale(1);
+  border-radius: 0;
+  opacity: 1;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              border-radius 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s ease;
+  &.kb-hidden {
+    transform: scale(0);
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+.keyboard-body { display: flex; gap: 12rpx; }
+.keyboard-left { flex: 3; }
+.keyboard-right { flex: 1; display: flex; flex-direction: column; }
+.key-row { display: flex; gap: 12rpx; }
+.key {
+  flex: 1; height: 100rpx; background: #fff; border-radius: 18rpx;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40rpx; color: #1c1c1e; margin-bottom: 12rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
+  &:active { transform: scale(0.96); background: #e8e8e8; }
+}
+.key-collapse {
+  background: #fff;
+}
+.key-func {
+  background: #fff; font-size: 44rpx; font-weight: 600;
+}
+.key-submit {
+  background: #ff6700; color: #fff; font-size: 30rpx; font-weight: 600;
+  &:active { background: #e55d00; }
+}
+
+/* 悬浮展开按钮 */
+.fab-btn {
+  position: fixed;
+  right: 40rpx; bottom: 60rpx; z-index: 99;
+  width: 100rpx; height: 100rpx; border-radius: 50%;
+  background: #ff6700;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8rpx 30rpx rgba(255,103,0,0.4);
+  transform: scale(1);
+  opacity: 1;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.15s,
+              opacity 0.3s ease 0.15s;
+  &:active { transform: scale(0.9); }
+  &.fab-hidden {
+    transform: scale(0);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.2s ease;
+  }
+}
+
+.expression-row {
+  margin-bottom: 8rpx;
+}
+.expression-text {
+  font-size: 28rpx; color: #8e8e93;
 }
 
 /* 弹层样式 */
 .popup-content {
-  padding: 12rpx 0 40rpx 0;
   padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
   border-top-left-radius: 24rpx;
   border-top-right-radius: 24rpx;
@@ -935,68 +1000,24 @@ const submitMock = async () => {
   gap: 8rpx;
   padding: 0 30rpx;
 }
-
 .date-option {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 24rpx 20rpx;
   background: #f6f6f6;
   border-radius: 20rpx;
   transition: all 0.2s ease;
-
-  &:active {
-    background-color: #f0f0f0;
-    transform: scale(0.98);
-  }
+  &:active { background-color: #f0f0f0; transform: scale(0.98); }
 }
-
 .option-left {
   display: flex;
   align-items: center;
   gap: 20rpx;
 }
-
 .option-text {
   font-size: 32rpx;
   font-weight: 500;
   color: #1c1c1e;
 }
 
-/* 键盘弹层样式 */
-.keyboard-popup { 
-	padding: 12rpx; 
-	padding-bottom: env(safe-area-inset-bottom);
-	background-color: #f6f6f6;
-	border-top-left-radius: 24rpx;
-	border-top-right-radius: 24rpx;
-}
-.toolbar {
-	padding: 8rpx 8rpx 0 8rpx;
-}
-.drag-bar {
-	width: 80rpx;
-	height: 8rpx;
-	background-color: #dcdcdc;
-	border-radius: 4rpx;
-	margin: 0 auto 16rpx auto;
-}
-.toolbar-actions {
-	display: flex;
-}
-.toolbar .spacer { flex: 1; }
-.toolbar .done {
-	font-size: 30rpx;
-	font-weight: 500;
-	color: #ff6700;
-	padding: 12rpx 16rpx;
-}
-
-.key-row { display: flex; gap: 12rpx; }
-.key { flex: 1; height: 108rpx; background: #fff; border-radius: 18rpx; display: flex; align-items: center; justify-content: center; font-size: 40rpx; color: #1c1c1e; margin-bottom: 12rpx; transition: transform .08s ease, background .2s ease; box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06); }
-.key:active { transform: scale(0.98); background: #f1f1f1; }
-
-.popup-action {
-  padding: 8rpx 8rpx 20rpx 8rpx;
-}
 </style>

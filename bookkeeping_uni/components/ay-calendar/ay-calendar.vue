@@ -1,7 +1,7 @@
 <template>
 	<view class="ay-calendar-container">
 		<view class="calendar-navigation">
-			<view class="calendar-nav-prev" @click="prevMonth" :class="{'calendar-nav-prev-disabled': currentSlide === 0}">
+			<view class="calendar-nav-prev" @click="prevMonth" :class="{'calendar-nav-prev-disabled': isAtStart}">
 				<tn-icon class="calendar-nav-prev-icon" name="left" size="36" offset-top="2"></tn-icon>
 				<text class="calendar-nav-prev-text">上个月</text>
 			</view>
@@ -12,7 +12,7 @@
 			</view>
 
 			<view class="calendar-nav-next" @click="nextMonth"
-				:class="{'calendar-nav-next-disabled': currentSlide === monthSlides.length - 1}">
+				:class="{'calendar-nav-next-disabled': isAtEnd}">
 				<text class="calendar-nav-next-text">下个月</text>
 				<tn-icon class="calendar-nav-next-icon" name="right" size="36" offset-top="2"></tn-icon>
 			</view>
@@ -37,7 +37,7 @@
 		            }
 		          ]" @tap="selectDate(day.date)">
 							{{ day.day }}
-							<text class="lunar-date">{{ getLunarDate(day.date) }}</text>
+							<text v-if="showLunar" class="lunar-date">{{ getLunarDate(day.date) }}</text>
 							<slot name="content" :date="day"></slot>
 						</view>
 					</view>
@@ -60,7 +60,7 @@
 		          }
 		        ]" @tap="selectDate(day.date)">
 						{{ day.day }}
-						<text class="lunar-date">{{ getLunarDate(day.date) }}</text>
+						<text v-if="showLunar" class="lunar-date">{{ getLunarDate(day.date) }}</text>
 						<slot name="content" :date="day"></slot>
 					</view>
 					<view class="background-number">{{/(\d+)月/.exec(currentMonthTitle)[1]}}</view>
@@ -94,16 +94,20 @@
 			endDate: {
 				type: [Date, String],
 				default: null
+			},
+			showLunar: {
+				type: Boolean,
+				default: true
 			}
 		},
 		data() {
 			return {
-				currentDate: this.parseDateInput(this.startDate),
 				selectedDate: null,
 				currentSlide: 0,
+				monthSlides: [],
 				weekdays: ['日', '一', '二', '三', '四', '五', '六'],
-				duration: 0, // 初始化时动画持续时间为0
-				isInitialized: false // 添加初始化标志
+				duration: 0,
+				monthCache: {}
 			};
 		},
 		computed: {
@@ -119,45 +123,44 @@
 				const currentMonth = this.monthSlides[this.currentSlide];
 				return currentMonth ? currentMonth.title : '';
 			},
-			monthSlides() {
-				const slides = [];
-				let currentDate = new Date(this.processedStartDate.getFullYear(), this.processedStartDate.getMonth(), 1);
-
-				while (currentDate <= this.processedEndDate) {
-					const year = currentDate.getFullYear();
-					const month = currentDate.getMonth();
-
-					slides.push({
-						title: `${year}年${month + 1}月`,
-						days: this.generateCalendarDays(year, month)
-					});
-
-					// 移动到下一个月
-					currentDate.setMonth(currentDate.getMonth() + 1);
-				}
-
-				return slides;
+			isAtStart() {
+				const cur = this.monthSlides[this.currentSlide];
+				if (!cur) return true;
+				const s = this.processedStartDate;
+				return cur.year === s.getFullYear() && cur.month === s.getMonth();
 			},
-			initialSlideIndex() {
-				const today = new Date();
-				const startYear = this.processedStartDate.getFullYear();
-				const startMonth = this.processedStartDate.getMonth();
-				const currentYear = today.getFullYear();
-				const currentMonth = today.getMonth();
-
-				return (currentYear - startYear) * 12 + (currentMonth - startMonth);
+			isAtEnd() {
+				const cur = this.monthSlides[this.currentSlide];
+				if (!cur) return true;
+				const e = this.processedEndDate;
+				return cur.year === e.getFullYear() && cur.month === e.getMonth();
 			}
 		},
 		created() {
-			// 在组件创建时设置正确的slide索引
-			this.$nextTick(() => {
-				const validSlideIndex = Math.min(Math.max(this.initialSlideIndex, 0), this.monthSlides.length - 1);
-				this.currentSlide = validSlideIndex;
+			const today = new Date();
+			const startDate = this.processedStartDate;
+			const endDate = this.processedEndDate;
+			// 确定初始月份（当月，但不超出范围）
+			let initYear = today.getFullYear();
+			let initMonth = today.getMonth();
+			if (today < startDate) { initYear = startDate.getFullYear(); initMonth = startDate.getMonth(); }
+			if (today > endDate) { initYear = endDate.getFullYear(); initMonth = endDate.getMonth(); }
 
-				setTimeout(() => {
-					this.duration = 500;
-				}, 100)
-			});
+			// 生成当月±1
+			const months = [];
+			for (let offset = -1; offset <= 1; offset++) {
+				const d = new Date(initYear, initMonth + offset, 1);
+				if (d >= new Date(startDate.getFullYear(), startDate.getMonth(), 1) &&
+					d <= new Date(endDate.getFullYear(), endDate.getMonth(), 1)) {
+					months.push(this.buildMonth(d.getFullYear(), d.getMonth()));
+				}
+			}
+			this.monthSlides = months;
+			// currentSlide 指向当月
+			const idx = months.findIndex(m => m.year === initYear && m.month === initMonth);
+			this.currentSlide = idx >= 0 ? idx : 0;
+
+			this.$nextTick(() => { setTimeout(() => { this.duration = 500; }, 100); });
 		},
 		methods: {
 			parseDateInput(input) {
@@ -182,8 +185,40 @@
 
 				return new Date();
 			},
+			buildMonth(year, month) {
+				const key = `${year}-${month}`;
+				if (this.monthCache[key]) return this.monthCache[key];
+				const data = {
+					title: `${year}年${month + 1}月`,
+					year,
+					month,
+					days: this.generateCalendarDays(year, month)
+				};
+				this.monthCache[key] = data;
+				return data;
+			},
+			ensureAdjacentMonths() {
+				const cur = this.monthSlides[this.currentSlide];
+				if (!cur) return;
+				const startFirst = new Date(this.processedStartDate.getFullYear(), this.processedStartDate.getMonth(), 1);
+				const endFirst = new Date(this.processedEndDate.getFullYear(), this.processedEndDate.getMonth(), 1);
+				// 往前补
+				const first = this.monthSlides[0];
+				const prevD = new Date(first.year, first.month - 1, 1);
+				if (prevD >= startFirst && this.currentSlide <= 1) {
+					this.monthSlides.unshift(this.buildMonth(prevD.getFullYear(), prevD.getMonth()));
+					this.currentSlide++;
+				}
+				// 往后补
+				const last = this.monthSlides[this.monthSlides.length - 1];
+				const nextD = new Date(last.year, last.month + 1, 1);
+				if (nextD <= endFirst && this.currentSlide >= this.monthSlides.length - 2) {
+					this.monthSlides.push(this.buildMonth(nextD.getFullYear(), nextD.getMonth()));
+				}
+			},
 			onSlideChange(e) {
 				this.currentSlide = e;
+				this.ensureAdjacentMonths();
 			},
 			generateCalendarDays(year, month) {
 				const firstDay = new Date(year, month, 1);
@@ -234,25 +269,26 @@
 					this.selectedDate = date;
 					this.$emit('date-selected', date);
 
-					// 获取当前显示的月份信息
-					const currentViewMonth = this.monthSlides[this.currentSlide];
-					const currentViewDate = new Date(currentViewMonth.title.replace(/年|月/g, '-'));
-
-					// 判断选中的日期是否属于当前显示的月份
-					if (date.getMonth() !== currentViewDate.getMonth() ||
-						date.getFullYear() !== currentViewDate.getFullYear()) {
-
-						// 计算目标月份相对于开始日期的偏移量
-						const targetSlideIndex = (date.getFullYear() - this.processedStartDate.getFullYear()) * 12 +
-							(date.getMonth() - this.processedStartDate.getMonth());
-
-						// 确保索引在有效范围内
-						const validSlideIndex = Math.min(Math.max(targetSlideIndex, 0), this.monthSlides.length - 1);
-
-						// 如果目标月份与当前月份不同，则切换到目标月份
-						if (validSlideIndex !== this.currentSlide) {
-							this.currentSlide = validSlideIndex;
+					const cur = this.monthSlides[this.currentSlide];
+					if (date.getMonth() !== cur.month || date.getFullYear() !== cur.year) {
+						// 查找目标月是否已在数组中
+						let idx = this.monthSlides.findIndex(m => m.year === date.getFullYear() && m.month === date.getMonth());
+						if (idx < 0) {
+							// 动态插入目标月
+							const target = this.buildMonth(date.getFullYear(), date.getMonth());
+							const targetOffset = date.getFullYear() * 12 + date.getMonth();
+							const curOffset = cur.year * 12 + cur.month;
+							if (targetOffset < curOffset) {
+								this.monthSlides.unshift(target);
+								this.currentSlide++;
+								idx = 0;
+							} else {
+								this.monthSlides.push(target);
+								idx = this.monthSlides.length - 1;
+							}
 						}
+						this.currentSlide = idx;
+						this.ensureAdjacentMonths();
 					}
 				}
 			},
@@ -283,11 +319,13 @@
 			prevMonth() {
 				if (this.currentSlide > 0) {
 					this.currentSlide--;
+					this.ensureAdjacentMonths();
 				}
 			},
 			nextMonth() {
 				if (this.currentSlide < this.monthSlides.length - 1) {
 					this.currentSlide++;
+					this.ensureAdjacentMonths();
 				}
 			}
 		}

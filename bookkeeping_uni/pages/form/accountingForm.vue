@@ -638,7 +638,7 @@
 
 <style lang="scss" scoped>
 	.container {
-		min-height: 100vh;
+		min-height: 100vh; min-height: 100dvh;
 		background-color: #f8f9fc;
 		padding: 20rpx;
 		padding-bottom: calc(140rpx + env(safe-area-inset-bottom));

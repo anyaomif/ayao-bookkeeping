@@ -50,6 +50,13 @@
 			}
 		},
 		{
+			"path": "pages/personal/ai-chat",
+			"style": {
+				"navigationBarTitleText": "小尧AI智能记账",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/index/index",
 			"style": {
 				"navigationBarTitleText": "俺要记账",

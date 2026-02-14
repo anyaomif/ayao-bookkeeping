@@ -23,7 +23,7 @@ module.exports = app => {
     underscored: true,
   });
 
-  PersonalTransaction.sync({ alter: true });
+  PersonalTransaction.sync();
 
   return PersonalTransaction;
 };

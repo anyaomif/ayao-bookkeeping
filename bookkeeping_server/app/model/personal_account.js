@@ -17,7 +17,7 @@ module.exports = app => {
     underscored: true,
   });
 
-  PersonalAccount.sync({ alter: true });
+  PersonalAccount.sync();
 
   return PersonalAccount;
 };

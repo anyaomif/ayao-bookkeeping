@@ -3,34 +3,34 @@ const { Service } = require('egg');
 // 注册时初始化的默认分类
 const DEFAULT_CATEGORIES = [
   { type: 'expense', parent_id: 0, name: '餐饮', icon: 'eat', color: '#ff9f0a', sort_order: 1, subs: [
-    { name: '早餐', icon: 'eat', color: '#ff9f0a' },
-    { name: '午餐', icon: 'eat', color: '#ff9f0a' },
-    { name: '晚餐', icon: 'eat', color: '#ff9f0a' },
-    { name: '夜宵', icon: 'eat', color: '#ff9f0a' },
-    { name: '零食', icon: 'eat', color: '#ff9f0a' },
-    { name: '水果', icon: 'eat', color: '#ff9f0a' },
-    { name: '买菜', icon: 'eat', color: '#ff9f0a' },
+    { name: '早餐', icon: 'eat-west', color: '#ff9f0a' },
+    { name: '午餐', icon: 'eat-fill', color: '#ff9f0a' },
+    { name: '晚餐', icon: 'eat-other', color: '#ff9f0a' },
+    { name: '夜宵', icon: 'food-fill', color: '#ff9f0a' },
+    { name: '零食', icon: 'food', color: '#ff9f0a' },
+    { name: '水果', icon: 'orange', color: '#ff9f0a' },
+    { name: '买菜', icon: 'basket', color: '#ff9f0a' },
   ] },
   { type: 'expense', parent_id: 0, name: '购物', icon: 'shop', color: '#af52de', sort_order: 2, subs: [
-    { name: '服饰', icon: 'shop', color: '#af52de' },
-    { name: '日用', icon: 'shop', color: '#af52de' },
-    { name: '数码', icon: 'shop', color: '#af52de' },
-    { name: '家居', icon: 'shop', color: '#af52de' },
+    { name: '服饰', icon: 'clothing-male', color: '#af52de' },
+    { name: '日用', icon: 'shopbag', color: '#af52de' },
+    { name: '数码', icon: 'computer', color: '#af52de' },
+    { name: '家居', icon: 'sofa', color: '#af52de' },
   ] },
   { type: 'expense', parent_id: 0, name: '交通', icon: 'taxi', color: '#5ac8fa', sort_order: 3, subs: [
-    { name: '公交', icon: 'taxi', color: '#5ac8fa' },
-    { name: '地铁', icon: 'taxi', color: '#5ac8fa' },
-    { name: '打车', icon: 'taxi', color: '#5ac8fa' },
-    { name: '加油', icon: 'taxi', color: '#5ac8fa' },
+    { name: '公交', icon: 'bus', color: '#5ac8fa' },
+    { name: '地铁', icon: 'train', color: '#5ac8fa' },
+    { name: '打车', icon: 'taxi-fill', color: '#5ac8fa' },
+    { name: '加油', icon: 'pay', color: '#5ac8fa' },
   ] },
   { type: 'income', parent_id: 0, name: '职业', icon: 'fire', color: '#34c759', sort_order: 1, subs: [
-    { name: '工资', icon: 'fire', color: '#34c759' },
-    { name: '奖金', icon: 'fire', color: '#34c759' },
-    { name: '兼职', icon: 'fire', color: '#34c759' },
+    { name: '工资', icon: 'money', color: '#34c759' },
+    { name: '奖金', icon: 'trophy', color: '#34c759' },
+    { name: '兼职', icon: 'job', color: '#34c759' },
   ] },
   { type: 'income', parent_id: 0, name: '理财', icon: 'safe', color: '#af52de', sort_order: 2, subs: [
-    { name: '股票', icon: 'safe', color: '#af52de' },
-    { name: '基金', icon: 'safe', color: '#af52de' },
+    { name: '股票', icon: 'funds', color: '#af52de' },
+    { name: '基金', icon: 'piggy-bank', color: '#af52de' },
   ] },
   { type: 'transfer', parent_id: 0, name: '转账', icon: 'refresh', color: '#8e8e93', sort_order: 1, subs: [
     { name: '转出', icon: 'left-arrow', color: '#ff3b30' },
@@ -133,6 +133,29 @@ class PersonalCategoryService extends Service {
       if (txCount > 0) this.ctx.throw(400, '该分类下有交易记录，无法删除');
     }
     await category.destroy();
+  }
+
+  // 恢复默认：删除无交易记录的分类，重新初始化
+  async resetDefaults(userId) {
+    const allCats = await this.ctx.model.PersonalCategory.findAll({
+      where: { user_id: userId }, attributes: ['id'],
+    });
+    const allIds = allCats.map(c => c.id);
+
+    // 找出有交易关联的分类 id
+    const usedCats = allIds.length ? await this.ctx.model.PersonalTransaction.findAll({
+      where: { user_id: userId, category_id: allIds },
+      attributes: ['category_id'],
+      group: ['category_id'],
+    }) : [];
+    const usedIds = new Set(usedCats.map(c => Number(c.category_id)));
+
+    if (usedIds.size > 0) {
+      this.ctx.throw(400, '存在关联交易记录的分类，请先删除相关交易');
+    }
+
+    await this.ctx.model.PersonalCategory.destroy({ where: { user_id: userId } });
+    await this.initDefaults(userId);
   }
 }
 

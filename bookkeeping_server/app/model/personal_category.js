@@ -22,7 +22,7 @@ module.exports = app => {
     underscored: true,
   });
 
-  PersonalCategory.sync({ alter: true });
+  PersonalCategory.sync();
 
   return PersonalCategory;
 };

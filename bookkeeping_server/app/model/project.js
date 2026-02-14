@@ -37,8 +37,7 @@ module.exports = app => {
     underscored: true,
   });
 
-  // 自动同步数据库结构
-  Project.sync({ alter: true });
+  Project.sync();
 
   return Project;
 };

@@ -116,7 +116,7 @@
 
 <style lang="scss" scoped>
 	.forget-container {
-		min-height: 100vh;
+		min-height: 100vh; min-height: 100dvh;
 		padding: 0 60rpx;
 		background-color: #fff;
 

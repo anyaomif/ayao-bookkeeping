@@ -135,7 +135,7 @@
 
 <style lang="scss" scoped>
 	.login-container {
-		min-height: 100vh;
+		min-height: 100vh; min-height: 100dvh;
 		padding: 60rpx;
 		background-color: #fff;
 

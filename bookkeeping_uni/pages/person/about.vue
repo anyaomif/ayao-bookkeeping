@@ -86,7 +86,7 @@
 
 <style lang="scss">
 	.about-container {
-		min-height: 100vh;
+		min-height: 100vh; min-height: 100dvh;
 		background-color: #f8f9fc;
 		padding: 20rpx;
 		padding-bottom: calc(env(safe-area-inset-bottom) + 40rpx);

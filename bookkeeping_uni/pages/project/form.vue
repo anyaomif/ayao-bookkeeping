@@ -302,7 +302,7 @@
 
 <style lang="scss" scoped>
 	.project-form {
-		min-height: 100vh;
+		min-height: 100vh; min-height: 100dvh;
 		background-color: #f8f9fc;
 		padding-bottom: calc(env(safe-area-inset-bottom) + 120rpx);
 

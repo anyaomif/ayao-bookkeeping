@@ -3,7 +3,7 @@ module.exports = app => {
 
   const User = app.model.define('user', {
     id: { type: INTEGER, primaryKey: true, autoIncrement: true },
-    username: { type: STRING(50), allowNull: false, unique: true },
+    username: { type: STRING(50), allowNull: false, unique: 'username_unique' },
     password: { type: STRING(500), allowNull: false },
     nickname: { type: STRING(50) },
     avatar: { type: STRING(200) },
@@ -16,8 +16,8 @@ module.exports = app => {
     underscored: true,
   });
 
-  // 自动同步数据库结构
-  User.sync({ alter: true });
+  // 表结构变更请使用 migration
+  User.sync();
 
   return User;
 };

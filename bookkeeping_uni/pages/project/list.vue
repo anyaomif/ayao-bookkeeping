@@ -276,14 +276,14 @@
 
 <style lang="scss" scoped>
 	page {
-		max-height: 100vh;
+		max-height: 100vh; max-height: 100dvh;
 		overflow: hidden;
 	}
 
 	.project-list {
-		height: calc(100vh - 44px);
+		height: calc(100vh - 44px); height: calc(100dvh - 44px);
 		/* #ifdef APP,MP-WEIXIN */
-		height: 100vh;
+		height: 100vh; height: 100dvh;
 		/* #endif */
 		background-color: #f8f9fc;
 		position: relative;
@@ -568,7 +568,7 @@
 
 		.filter-popup {
 			width: 50vw;
-			height: 100vh;
+			height: 100vh; height: 100dvh;
 			background-color: #fff;
 			padding-top: 106px;
 			/* #ifdef APP */

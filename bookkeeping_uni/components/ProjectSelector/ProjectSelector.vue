@@ -87,7 +87,7 @@ const goProject = () => {
 
 .project-popup {
 	width: 50vw;
-	height: 100vh;
+	height: 100vh; height: 100dvh;
 	background-color: #fff;
 	padding-top: var(--status-bar-height);
 

@@ -15,7 +15,24 @@
 				</view>
 			</view>
 
-			<!-- 统计数据 -->
+			<ay-skeleton :loading="!pageLoaded">
+				<template #skeleton>
+					<view style="padding-top: 20rpx; border-top: 1rpx solid #f0f0f0;">
+						<view style="display: flex; justify-content: space-around; margin-bottom: 30rpx;">
+							<view style="text-align: center;" v-for="i in 3" :key="i">
+								<view class="sk-block" style="width: 80rpx; height: 40rpx; margin: 0 auto 12rpx;"></view>
+								<view class="sk-block" style="width: 120rpx; height: 24rpx;"></view>
+							</view>
+						</view>
+						<view style="display: flex; justify-content: space-around;">
+							<view style="text-align: center;" v-for="i in 2" :key="i">
+								<view class="sk-block" style="width: 120rpx; height: 40rpx; margin: 0 auto 12rpx;"></view>
+								<view class="sk-block" style="width: 100rpx; height: 24rpx;"></view>
+							</view>
+						</view>
+					</view>
+				</template>
+				<view>
 			<view class="statistics">
 				<view class="stat-item">
 					<text class="number">
@@ -49,6 +66,8 @@
 					<text class="label">平均日薪</text>
 				</view>
 			</view>
+				</view>
+			</ay-skeleton>
 		</view>
 
 		<!-- 功能菜单 -->
@@ -116,6 +135,8 @@
 		totalIncome: 0
 	})
 
+	const pageLoaded = ref(false)
+
 	// 添加金额显示控制相关的状态
 	const isAmountHidden = ref(true)
 	const temporaryShow = ref(false)
@@ -168,8 +189,10 @@
 					averageDailyWage: res.data.average_daily_wage || 0,
 					totalIncome: res.data.total_income || 0
 				}
+				pageLoaded.value = true
 			}
 		} catch (error) {
+			pageLoaded.value = true
 			console.error('获取工作统计数据失败:', error)
 			uni.showToast({
 				title: '获取统计数据失败',
@@ -250,7 +273,7 @@
 
 <style lang="scss" scoped>
 	.person-container {
-		min-height: 100vh;
+		min-height: 100vh; min-height: 100dvh;
 		background-color: #f5f5f5;
 		/* #ifdef APP */
 		padding-top: var(--status-bar-height);

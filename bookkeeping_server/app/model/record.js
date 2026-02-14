@@ -81,8 +81,7 @@ module.exports = app => {
     underscored: true,
   });
 
-  // 自动同步数据库结构
-  Record.sync({ alter: true });
+  Record.sync();
 
   return Record;
 };

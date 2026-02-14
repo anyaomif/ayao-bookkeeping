@@ -36,6 +36,12 @@ class PersonalCategoryController extends Controller {
     await ctx.service.personalCategory.destroy(ctx.params.id, ctx.state.user.id);
     ctx.success(null, '删除成功');
   }
+
+  async reset() {
+    const { ctx } = this;
+    await ctx.service.personalCategory.resetDefaults(ctx.state.user.id);
+    ctx.success(null, '已恢复默认分类');
+  }
 }
 
 module.exports = PersonalCategoryController;

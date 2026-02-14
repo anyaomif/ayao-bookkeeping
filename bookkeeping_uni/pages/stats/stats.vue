@@ -723,7 +723,7 @@
 
 <style lang="scss" scoped>
 	.stats-container {
-		min-height: 100vh;
+		min-height: 100vh; min-height: 100dvh;
 		background-color: #f8f9fc;
 		padding-bottom: 140rpx;
 

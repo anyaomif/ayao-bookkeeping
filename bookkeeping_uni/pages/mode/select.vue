@@ -103,7 +103,7 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		height: 100vh;
+		height: 100vh; height: 100dvh;
 		background-color: #f7f7f8;
 		padding: 40rpx;
 		box-sizing: border-box;

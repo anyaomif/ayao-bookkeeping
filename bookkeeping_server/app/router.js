@@ -59,6 +59,7 @@ module.exports = app => {
 
   // 分类
   router.post('/api/personal/categories/init', jwt, controller.personalCategory.init);
+  router.post('/api/personal/categories/reset', jwt, controller.personalCategory.reset);
   router.get('/api/personal/categories', jwt, controller.personalCategory.index);
   router.post('/api/personal/categories', jwt, controller.personalCategory.create);
   router.put('/api/personal/categories/:id', jwt, controller.personalCategory.update);
@@ -71,6 +72,10 @@ module.exports = app => {
   router.put('/api/personal/transactions/:id', jwt, controller.personalTransaction.update);
   router.delete('/api/personal/transactions/:id', jwt, controller.personalTransaction.destroy);
   router.get('/api/personal/statistics', jwt, controller.personalTransaction.statistics);
+
+  // AI智能记账
+  router.post('/api/personal/ai/stream', jwt, controller.ai.stream);
+  router.post('/api/personal/ai/confirm', jwt, controller.ai.confirm);
 
   // 用户
   router.post('/api/user/register', registerSchema, controller.user.register);
