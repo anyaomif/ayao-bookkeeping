@@ -8,13 +8,6 @@
 	},
 	"pages": [
 		{
-			"path": "pages/mode/select",
-			"style": {
-				"navigationBarTitleText": "选择模式",
-				"navigationStyle": "custom"
-			}
-		},
-		{
 			"path": "pages/personal/dashboard",
 			"style": {
 				"navigationBarTitleText": "看板",
@@ -53,7 +46,10 @@
 			"path": "pages/personal/ai-chat",
 			"style": {
 				"navigationBarTitleText": "小尧AI智能记账",
-				"navigationStyle": "custom"
+				"navigationStyle": "custom",
+				"app-plus": {
+					"softinputMode": "adjustResize"
+				}
 			}
 		},
 		{
@@ -114,6 +110,27 @@
 			"path": "pages/form/accountingForm",
 			"style": {
 				"navigationBarTitleText": "记一笔"
+			}
+		},
+		{
+			"path": "pages/lock/lock",
+			"style": {
+				"navigationBarTitleText": "",
+				"navigationStyle": "custom",
+				"disableScroll": true,
+				"app-plus": {
+					"animationType": "fade-in",
+					"animationDuration": 200,
+					"bounce": "none",
+					"popGesture": "none"
+				}
+			}
+		},
+		{
+			"path": "pages/mode/select",
+			"style": {
+				"navigationBarTitleText": "选择模式",
+				"navigationStyle": "custom"
 			}
 		},
 		{

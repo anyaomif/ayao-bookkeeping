@@ -1,65 +1,120 @@
 <script>
 	export default {
+		globalData: {
+			needAuth: true,
+			isLockPageOpen: false
+		},
 		onLaunch: function() {
 			console.log('App Launch')
 			this.initializeApp()
+			this.handleStartupRoute()
+			// #ifdef APP-PLUS
+			this.schedulePushIfEnabled()
+			// #endif
 		},
 		onShow: function() {
 			console.log('App Show')
+			// #ifdef APP-PLUS
+			this.checkFingerprintAuth()
+			// #endif
 		},
 		onHide: function() {
 			console.log('App Hide')
+			// #ifdef APP-PLUS
+			const settings = uni.getStorageSync('user_settings')
+			const token = uni.getStorageSync('token')
+			if (token && settings?.fingerprint_unlock?.enabled) {
+				this.globalData.needAuth = true
+			}
+			// #endif
 		},
 		methods: {
+			handleStartupRoute() {
+				const token = uni.getStorageSync('token')
+				if (!token) {
+					uni.reLaunch({ url: '/pages/login/login' })
+					return
+				}
+				const mode = uni.getStorageSync('app_mode')
+				if (!mode) {
+					uni.reLaunch({ url: '/pages/mode/select' })
+					return
+				}
+				if (mode === 'work') {
+					uni.reLaunch({ url: '/pages/index/index' })
+				}
+				// mode === 'personal' 不跳转，已在 dashboard
+			},
+			schedulePushIfEnabled() {
+				const s = uni.getStorageSync('user_settings')
+				if (!s?.notification?.enabled) return
+				const hour = s.notification.hour ?? 20
+				const minute = s.notification.minute ?? 0
+				plus.push.clear()
+				const now = new Date()
+				const target = new Date()
+				target.setHours(hour, minute, 0, 0)
+				if (target <= now) target.setDate(target.getDate() + 1)
+				const delaySec = Math.round((target.getTime() - now.getTime()) / 1000)
+				console.log('[NOTIFY] App启动调度, 延迟秒:', delaySec)
+				plus.push.createMessage('该记账啦～别忘了今天的开销哦 📝', 'daily_remind', {
+					title: '俺要记账',
+					delay: delaySec,
+					sound: 'system',
+					cover: false,
+				})
+			},
+			checkFingerprintAuth() {
+				const settings = uni.getStorageSync('user_settings')
+				const token = uni.getStorageSync('token')
+				if (!token || !settings?.fingerprint_unlock?.enabled || !this.globalData.needAuth) {
+					return
+				}
+				if (this.globalData.isLockPageOpen) return
+				// 检查当前页面是否已经是 lock 页
+				const pages = getCurrentPages()
+				const currentRoute = pages.length ? pages[pages.length - 1].route : ''
+				if (currentRoute === 'pages/lock/lock') return
+				this.globalData.isLockPageOpen = true
+				uni.navigateTo({ url: '/pages/lock/lock' })
+			},
+			doFingerprintAuth() {
+				if (!plus.fingerprint) return
+				plus.fingerprint.authenticate(() => {
+					this.globalData.needAuth = false
+					this.globalData.isLockPageOpen = false
+				}, () => {})
+			},
 			initializeApp() {
 				try {
-					// 检查是否是首次启动
 					const isFirstLaunch = !uni.getStorageSync('app_initialized')
-
 					if (isFirstLaunch) {
-						// 初始化用户设置
 						const defaultUserSettings = {
 							fingerprint_unlock: {
-								enabled: false, // 指纹解锁开关
-								last_updated: null // 最后更新时间
+								enabled: false,
+								last_updated: null
 							},
 							amount_display: {
-								hide_amount: false, // 是否隐藏金额
-								show_decimals: true // 是否显示小数点
+								hide_amount: false,
+								show_decimals: true
 							},
 							notification: {
-								enabled: false, // 通知开关
+								enabled: false,
 							},
 							theme: {
-								dark_mode: false, // 深色模式
-								color_scheme: 'default' // 配色方案
+								dark_mode: false,
+								color_scheme: 'default'
 							}
 						}
-
-						// 存储用户设置
 						uni.setStorageSync('user_settings', defaultUserSettings)
-
-						// 标记应用已初始化
 						uni.setStorageSync('app_initialized', true)
-
-						// 记录首次启动时间
 						uni.setStorageSync('first_launch_time', new Date().getTime())
-
-						console.log('App initialized with default settings')
-					} else {
-						// 非首次启动，可以进行其他初始化操作
 					}
 				} catch (error) {
 					console.error('App initialization failed:', error)
-
-					// 初始化失败时，确保有基本设置可用
 					const basicSettings = {
-						fingerprint_unlock: {
-							enabled: false
-						},
-						amount_display: {
-							hide_amount: false
-						},
+						fingerprint_unlock: { enabled: false },
+						amount_display: { hide_amount: false },
 					}
 					uni.setStorageSync('user_settings', basicSettings)
 				}

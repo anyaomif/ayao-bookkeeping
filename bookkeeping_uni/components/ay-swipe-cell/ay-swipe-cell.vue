@@ -4,8 +4,8 @@
 			<slot name="left"></slot>
 		</view>
 		<view class="cell-content" :class="{ 'no-transition': dragging }"
-			:style="{ transform: `translateX(${offsetX}rpx)` }"
-			@touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
+			:style="{ transform: `translateX(${offsetX}rpx)` }" @touchstart="onTouchStart" @touchmove="onTouchMove"
+			@touchend="onTouchEnd">
 			<slot></slot>
 		</view>
 		<view class="cell-actions" :style="{ width: `${actionWidth}rpx` }">
@@ -45,9 +45,11 @@ const emit = defineEmits(['open', 'close']);
 
 const offsetX = ref(0);
 const dragging = ref(false);
-let startX = 0, startY = 0, locked = false;
+let startX = 0, startY = 0, startOffset = 0, locked = false;
+let lastX = 0, lastTime = 0;
 
-const THRESHOLD = 0.5;
+const VELOCITY_THRESHOLD = 0.3; // px/ms，轻扫速度阈值
+const POSITION_THRESHOLD = 0.2; // 位置阈值比例
 
 const self = { close: () => close() };
 registerToGroup(props.group, self);
@@ -67,10 +69,16 @@ const closeAll = () => {
 	if (groupMap[props.group]) groupMap[props.group].forEach(inst => inst.close());
 };
 
+// px → rpx 转换系数
+const getPxRatio = () => 750 / uni.getSystemInfoSync().windowWidth;
+
 const onTouchStart = (e) => {
 	if (props.disabled) return;
 	startX = e.touches[0].clientX;
 	startY = e.touches[0].clientY;
+	startOffset = offsetX.value;
+	lastX = startX;
+	lastTime = Date.now();
 	locked = false;
 	dragging.value = true;
 	closeOthersInGroup(props.group, self);
@@ -78,21 +86,30 @@ const onTouchStart = (e) => {
 
 const onTouchMove = (e) => {
 	if (props.disabled || locked) return;
-	const dx = e.touches[0].clientX - startX;
+	const curX = e.touches[0].clientX;
 	const dy = e.touches[0].clientY - startY;
-	if (Math.abs(dy) > Math.abs(dx)) { locked = true; return; }
-	let x = offsetX.value + dx * 2;
+	const dx = curX - startX;
+	if (!locked && Math.abs(dy) > Math.abs(dx) && Math.abs(dx) < 5) { locked = true; return; }
+	const ratio = getPxRatio();
+	let x = startOffset + dx * ratio;
 	if (x > 0) x = 0;
 	if (x < -props.actionWidth) x = -props.actionWidth;
 	offsetX.value = x;
-	startX = e.touches[0].clientX;
-	startY = e.touches[0].clientY;
+	lastX = curX;
+	lastTime = Date.now();
 };
 
-const onTouchEnd = () => {
+const onTouchEnd = (e) => {
 	dragging.value = false;
 	if (locked) return;
-	offsetX.value < -props.actionWidth * THRESHOLD ? open() : close();
+	const endX = e.changedTouches[0].clientX;
+	const dt = Date.now() - lastTime || 1;
+	const velocity = (endX - lastX) / dt; // px/ms，正=右滑，负=左滑
+	// 速度优先：轻扫直接触发
+	if (velocity < -VELOCITY_THRESHOLD) { open(); return; }
+	if (velocity > VELOCITY_THRESHOLD) { close(); return; }
+	// 位置兜底
+	offsetX.value < -props.actionWidth * POSITION_THRESHOLD ? open() : close();
 };
 
 defineExpose({ open, close, closeAll });
@@ -102,21 +119,47 @@ defineExpose({ open, close, closeAll });
 .ay-swipe-cell {
 	position: relative;
 	overflow: hidden;
-	&.has-border { border-bottom: 1rpx solid #f5f5f5; }
-	&:last-child.has-border { border-bottom: none; }
+
+	&.has-border {
+		border-bottom: 1rpx solid #f5f5f5;
+	}
+
+	&:last-child.has-border {
+		border-bottom: none;
+	}
 }
+
 .cell-fixed-left {
-	position: absolute; left: 0; top: 0; bottom: 0; z-index: 2;
-	display: flex; align-items: center;
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	z-index: 2;
+	display: flex;
+	align-items: stretch;
 }
+
 .cell-content {
-	position: relative; z-index: 1; background: #fff;
+	position: relative;
+	z-index: 1;
+	background: #fff;
 	transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-	&.no-transition { transition: none; }
+
+	&.no-transition {
+		transition: none;
+	}
 }
+
 .cell-actions {
-	position: absolute; right: 0; top: 0; bottom: 0; z-index: 0;
-	display: flex; align-items: center; justify-content: center; gap: 20rpx;
+	position: absolute;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	z-index: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 20rpx;
 	background-color: #f2f2f2;
 }
 </style>

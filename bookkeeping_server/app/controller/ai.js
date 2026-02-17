@@ -52,6 +52,35 @@ class AiController extends Controller {
     });
   }
 
+  // 非流式接口 - App端降级使用
+  async chat() {
+    const { ctx } = this;
+    const { text, pendingItems } = ctx.request.body;
+    if (!text || !text.trim()) ctx.throw(400, '请输入记账内容');
+
+    const userId = ctx.state.user.id;
+    const promptCtx = await ctx.service.ai.getPromptContext(userId);
+
+    let userMessage = text.trim();
+    if (pendingItems && pendingItems.length) {
+      userMessage = `当前有${pendingItems.length}条待确认记录：${JSON.stringify(pendingItems)}\n用户说：${text.trim()}\n请根据用户意图修改这些记录并返回修改后的完整JSON（包含所有记录）。`;
+    }
+
+    const systemPrompt = ctx.service.ai.buildSystemPrompt(promptCtx);
+
+    let fullReply = '';
+    await new Promise((resolve, reject) => {
+      ctx.service.ai.streamChat(systemPrompt, userMessage,
+        (chunk) => { fullReply += chunk; },
+        () => resolve(),
+        (err) => reject(err)
+      );
+    });
+
+    const parsed = ctx.service.ai.extractItems(fullReply);
+    ctx.success({ reply: fullReply, ...parsed });
+  }
+
   // 用户确认后提交入库
   async confirm() {
     const { ctx } = this;

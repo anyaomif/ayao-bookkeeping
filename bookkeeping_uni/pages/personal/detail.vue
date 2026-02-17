@@ -24,17 +24,17 @@
 					<view class="sk-block sk-card" style="height: 140rpx;"></view>
 				</view>
 			</template>
-		<view class="stats-card">
-			<view class="stats-item">
-				<text class="stats-label">总支出</text>
-				<text class="stats-value expense">¥{{ formatAmount(summary.expense, null) }}</text>
+			<view class="stats-card">
+				<view class="stats-item">
+					<text class="stats-label">总支出</text>
+					<text class="stats-value expense">¥{{ formatAmount(summary.expense, null) }}</text>
+				</view>
+				<view class="stats-divider"></view>
+				<view class="stats-item">
+					<text class="stats-label">总收入</text>
+					<text class="stats-value income">¥{{ formatAmount(summary.income, null) }}</text>
+				</view>
 			</view>
-			<view class="stats-divider"></view>
-			<view class="stats-item">
-				<text class="stats-label">总收入</text>
-				<text class="stats-value income">¥{{ formatAmount(summary.income, null) }}</text>
-			</view>
-		</view>
 		</ay-skeleton>
 
 		<!-- 交易流水 -->
@@ -45,45 +45,45 @@
 					<view class="sk-block sk-card" style="height: 128rpx; margin-bottom: 16rpx;" v-for="i in 5" :key="i"></view>
 				</view>
 			</template>
-		<view class="transactions-section">
-			<view class="transactions-list">
-				<template v-for="(group, index) in groupedTransactions" :key="index">
-					<view class="date-group">
-						<view class="group-header">
-							<text class="date-label">{{ group.date }}</text>
-							<text class="summary">支出: ¥{{ formatAmount(group.summary.expense) }} 收入: ¥{{
-								formatAmount(group.summary.income) }}</text>
-						</view>
-						<view class="group-items">
-							<ay-swipe-cell v-for="item in group.items" :key="item.id" :name="item.id" fixed-left group="detail">
-								<template #left>
-									<view class="item-fixed-left">
-										<view class="icon-wrapper" :style="{ backgroundColor: item.category.color }">
-											<tn-icon :name="item.category.icon" size="40" color="#fff"></tn-icon>
+			<view class="transactions-section">
+				<view class="transactions-list">
+					<template v-for="(group, index) in groupedTransactions" :key="index">
+						<view class="date-group">
+							<view class="group-header">
+								<text class="date-label">{{ group.date }}</text>
+								<text class="summary">支出: ¥{{ formatAmount(group.summary.expense) }} 收入: ¥{{
+									formatAmount(group.summary.income) }}</text>
+							</view>
+							<view class="group-items">
+								<ay-swipe-cell v-for="item in group.items" :key="item.id" :name="item.id" fixed-left group="detail">
+									<template #left>
+										<view class="item-fixed-left">
+											<view class="icon-wrapper" :style="{ backgroundColor: item.category.color }">
+												<tn-icon :name="item.category.icon" size="40" color="#fff"></tn-icon>
+											</view>
+											<text class="category-name">{{ item.category.name }}</text>
 										</view>
-										<text class="category-name">{{ item.category.name }}</text>
+									</template>
+									<view class="transaction-item">
+										<view class="item-details">
+											<text class="notes" v-if="item.notes">{{ item.notes }}</text>
+										</view>
+										<text class="amount" :class="item.type">{{ formatAmount(item.amount, item.type) }}</text>
 									</view>
-								</template>
-								<view class="transaction-item">
-									<view class="item-details">
-										<text class="notes" v-if="item.notes">{{ item.notes }}</text>
-									</view>
-									<text class="amount" :class="item.type">{{ formatAmount(item.amount, item.type) }}</text>
-								</view>
-								<template #actions>
-									<view class="action-btn-circle edit-btn" @click="goToEdit(item.id)">
-										<tn-icon name="edit" size="36" color="#fff"></tn-icon>
-									</view>
-									<view class="action-btn-circle delete-btn" @click="confirmDelete(item.id)">
-										<tn-icon name="delete" size="36" color="#fff"></tn-icon>
-									</view>
-								</template>
-							</ay-swipe-cell>
+									<template #actions>
+										<view class="action-btn-circle edit-btn" @click="goToEdit(item.id)">
+											<tn-icon name="edit" size="36" color="#fff"></tn-icon>
+										</view>
+										<view class="action-btn-circle delete-btn" @click="confirmDelete(item.id)">
+											<tn-icon name="delete" size="36" color="#fff"></tn-icon>
+										</view>
+									</template>
+								</ay-swipe-cell>
+							</view>
 						</view>
-					</view>
-				</template>
+					</template>
+				</view>
 			</view>
-		</view>
 		</ay-skeleton>
 
 		<!-- 底部 TabBar -->
@@ -99,8 +99,10 @@
 					<text class="filter-label">类型</text>
 					<view class="filter-options">
 						<view class="filter-tag" :class="{ active: filterType === '' }" @click="filterType = ''">全部</view>
-						<view class="filter-tag" :class="{ active: filterType === 'expense' }" @click="filterType = 'expense'">支出</view>
-						<view class="filter-tag" :class="{ active: filterType === 'income' }" @click="filterType = 'income'">收入</view>
+						<view class="filter-tag" :class="{ active: filterType === 'expense' }" @click="filterType = 'expense'">支出
+						</view>
+						<view class="filter-tag" :class="{ active: filterType === 'income' }" @click="filterType = 'income'">收入
+						</view>
 					</view>
 				</view>
 				<view class="filter-section">
@@ -108,8 +110,9 @@
 					<view class="filter-options">
 						<view class="filter-tag" :class="{ active: filterAccountId === '' }" @click="filterAccountId = ''">全部</view>
 						<view class="filter-tag" v-for="acc in accounts" :key="acc.id"
-							:class="{ active: filterAccountId === String(acc.id) }"
-							@click="filterAccountId = String(acc.id)">{{ acc.name }}</view>
+							:class="{ active: filterAccountId === String(acc.id) }" @click="filterAccountId = String(acc.id)">{{
+								acc.name
+							}}</view>
 					</view>
 				</view>
 				<view class="popup-actions">
@@ -137,8 +140,7 @@
 					</view>
 					<view class="month-grid">
 						<view class="month-item" v-for="m in 12" :key="m"
-							:class="{ active: pickerYear === currentYear && m === currentMonth }"
-							@click="selectMonth(m)">
+							:class="{ active: pickerYear === currentYear && m === currentMonth }" @click="selectMonth(m)">
 							<text>{{ m }}月</text>
 						</view>
 					</view>
@@ -286,7 +288,8 @@ onShow(() => { loadData(); loadAccounts(); });
 <style lang="scss" scoped>
 .detail-container {
 	background-color: #f6f6f6;
-	min-height: 100vh; min-height: 100dvh;
+	min-height: 100vh;
+	min-height: 100dvh;
 	padding-bottom: 160rpx;
 }
 
@@ -415,15 +418,25 @@ onShow(() => { loadData(); loadAccounts(); });
 	gap: 16rpx;
 	padding-left: 24rpx;
 	background: #fff;
+	padding-right: 10rpx;
+	box-sizing: border-box;
 }
 
 .icon-wrapper {
-	width: 80rpx; height: 80rpx; border-radius: 50%;
-	display: flex; justify-content: center; align-items: center;
+	width: 80rpx;
+	height: 80rpx;
+	border-radius: 50%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
 	flex-shrink: 0;
 }
 
-.category-name { font-size: 30rpx; color: #1c1c1e; white-space: nowrap; }
+.category-name {
+	font-size: 30rpx;
+	color: #1c1c1e;
+	white-space: nowrap;
+}
 
 .action-btn-circle {
 	width: 72rpx;
@@ -432,9 +445,19 @@ onShow(() => { loadData(); loadAccounts(); });
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	&.edit-btn { background-color: #ff6700; }
-	&.delete-btn { background-color: #ff3b30; }
-	&:active { opacity: 0.8; transform: scale(0.92); }
+
+	&.edit-btn {
+		background-color: #ff6700;
+	}
+
+	&.delete-btn {
+		background-color: #ff3b30;
+	}
+
+	&:active {
+		opacity: 0.8;
+		transform: scale(0.92);
+	}
 }
 
 .transaction-item {
@@ -447,16 +470,30 @@ onShow(() => { loadData(); loadAccounts(); });
 	gap: 16rpx;
 
 	.item-details {
-		flex: 1; display: flex; flex-direction: column; gap: 6rpx;
-		.notes { font-size: 24rpx; color: #8e8e93; text-align: right; }
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 6rpx;
+
+		.notes {
+			font-size: 24rpx;
+			color: #8e8e93;
+			text-align: right;
+		}
 	}
 
 	.amount {
 		font-size: 32rpx;
 		font-weight: 600;
 		letter-spacing: -1rpx;
-		&.expense { color: #1c1c1e; }
-		&.income { color: #34c759; }
+
+		&.expense {
+			color: #1c1c1e;
+		}
+
+		&.income {
+			color: #34c759;
+		}
 	}
 }
 
@@ -550,23 +587,60 @@ onShow(() => { loadData(); loadAccounts(); });
 .month-picker-body {
 	padding: 0 10rpx;
 }
+
 .year-row {
-	display: flex; align-items: center; justify-content: center; gap: 40rpx; margin-bottom: 30rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 40rpx;
+	margin-bottom: 30rpx;
 }
+
 .year-arrow {
-	width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center;
-	border-radius: 50%; background: #f6f6f6;
-	&:active { background: #eee; }
+	width: 64rpx;
+	height: 64rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background: #f6f6f6;
+
+	&:active {
+		background: #eee;
+	}
 }
-.year-text { font-size: 34rpx; font-weight: 600; color: #1c1c1e; }
+
+.year-text {
+	font-size: 34rpx;
+	font-weight: 600;
+	color: #1c1c1e;
+}
+
 .month-grid {
-	display: grid; grid-template-columns: repeat(4, 1fr); gap: 20rpx;
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 20rpx;
 }
+
 .month-item {
-	height: 80rpx; display: flex; align-items: center; justify-content: center;
-	border-radius: 16rpx; background: #f6f6f6; font-size: 30rpx; color: #333;
+	height: 80rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 16rpx;
+	background: #f6f6f6;
+	font-size: 30rpx;
+	color: #333;
 	transition: all 0.2s;
-	&:active { transform: scale(0.96); }
-	&.active { background: #ff6700; color: #fff; font-weight: 600; }
+
+	&:active {
+		transform: scale(0.96);
+	}
+
+	&.active {
+		background: #ff6700;
+		color: #fff;
+		font-weight: 600;
+	}
 }
 </style>

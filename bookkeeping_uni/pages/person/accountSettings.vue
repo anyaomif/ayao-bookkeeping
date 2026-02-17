@@ -8,15 +8,17 @@
 					<text class="label">每日提醒</text>
 					<text class="desc">每天提醒你记账</text>
 				</view>
-				<ay-switch v-model="settings.dailyReminder" active-color="#ff6700"></ay-switch>
+				<ay-switch :model-value="settings.dailyReminder" active-color="#ff6700" @change="onReminderToggle"></ay-switch>
 			</view>
-			<!-- <view class="settings-item">
+			<view class="settings-item" v-if="settings.dailyReminder">
 				<view class="item-left">
-					<text class="label">工资到账提醒</text>
-					<text class="desc">工资到账时通知你</text>
+					<text class="label">提醒时间</text>
+					<text class="desc">{{ reminderTimeText }}</text>
 				</view>
-				<ay-switch v-model="settings.salaryReminder" active-color="#ff6700"></ay-switch>
-			</view> -->
+				<picker mode="time" :value="reminderTimeText" @change="onTimeChange">
+					<tn-icon name="right" color="#999"></tn-icon>
+				</picker>
+			</view>
 		</view>
 
 		<!-- 隐私设置 -->
@@ -34,7 +36,7 @@
 					<text class="label">指纹解锁</text>
 					<text class="desc">使用指纹快速进入应用</text>
 				</view>
-				<ay-switch v-model="settings.fingerprintLock" active-color="#ff6700"></ay-switch>
+				<ay-switch :model-value="settings.fingerprintLock" active-color="#ff6700" @change="onFingerprintToggle"></ay-switch>
 			</view>
 		</view>
 
@@ -85,7 +87,8 @@
 	import {
 		ref,
 		onMounted,
-		watch
+		watch,
+		computed
 	} from 'vue'
 
 	// 导入用户API
@@ -95,11 +98,18 @@
 
 	// 设置数据
 	const settings = ref({
-		dailyReminder: true,
-		salaryReminder: true,
+		dailyReminder: false,
+		reminderHour: 20,
+		reminderMinute: 0,
 		showAmount: true,
 		fingerprintLock: false
 	})
+
+	const reminderTimeText = computed(() => {
+		const h = String(settings.value.reminderHour).padStart(2, '0');
+		const m = String(settings.value.reminderMinute).padStart(2, '0');
+		return `${h}:${m}`;
+	});
 
 	// 缓存大小
 	const cacheSize = ref('0.0MB')
@@ -116,7 +126,9 @@
 			const userSettings = uni.getStorageSync('user_settings')
 			if (userSettings) {
 				settings.value = {
-					dailyReminder: userSettings.notification?.enabled ?? true,
+					dailyReminder: userSettings.notification?.enabled ?? false,
+					reminderHour: userSettings.notification?.hour ?? 20,
+					reminderMinute: userSettings.notification?.minute ?? 0,
 					showAmount: !userSettings.amount_display?.hide_amount ?? true,
 					fingerprintLock: userSettings.fingerprint_unlock?.enabled ?? false
 				}
@@ -134,7 +146,9 @@
 			// 更新设置
 			userSettings.notification = {
 				...userSettings.notification,
-				enabled: settings.value.dailyReminder
+				enabled: settings.value.dailyReminder,
+				hour: settings.value.reminderHour,
+				minute: settings.value.reminderMinute
 			}
 
 			userSettings.amount_display = {
@@ -157,6 +171,82 @@
 				icon: 'error'
 			})
 		}
+	}
+
+	const onReminderToggle = (val) => {
+		settings.value.dailyReminder = val;
+		// #ifdef APP-PLUS
+		if (val) {
+			scheduleDailyReminder(settings.value.reminderHour, settings.value.reminderMinute);
+		} else {
+			plus.push.clear();
+		}
+		// #endif
+		// #ifndef APP-PLUS
+		if (val) {
+			uni.showToast({ title: '仅App端支持通知提醒', icon: 'none' });
+			settings.value.dailyReminder = false;
+		}
+		// #endif
+	};
+
+	const onTimeChange = (e) => {
+		const [h, m] = e.detail.value.split(':').map(Number);
+		settings.value.reminderHour = h;
+		settings.value.reminderMinute = m;
+		// #ifdef APP-PLUS
+		scheduleDailyReminder(h, m);
+		// #endif
+	};
+
+	const scheduleDailyReminder = (hour, minute) => {
+		// #ifdef APP-PLUS
+		plus.push.clear();
+		const now = new Date();
+		const target = new Date();
+		target.setHours(hour, minute, 0, 0);
+		if (target <= now) target.setDate(target.getDate() + 1);
+		const delaySec = Math.round((target.getTime() - now.getTime()) / 1000);
+		console.log('[NOTIFY] 调度通知, 目标:', target.toLocaleString(), '延迟秒:', delaySec);
+		try {
+			plus.push.createMessage('该记账啦～别忘了今天的开销哦 📝', 'daily_remind', {
+				title: '俺要记账',
+				delay: delaySec,
+				sound: 'system',
+				cover: false,
+			});
+			console.log('[NOTIFY] createMessage 完成');
+		} catch (e) {
+			console.log('[NOTIFY] createMessage 异常:', e.message);
+		}
+		// #endif
+	};
+
+	const onFingerprintToggle = (val) => {
+		// #ifdef APP-PLUS
+		if (val) {
+			const fingerprint = plus.fingerprint;
+			if (!fingerprint) {
+				uni.showToast({ title: '设备不支持指纹识别', icon: 'none' });
+				return;
+			}
+			fingerprint.isEnrolled()
+			if (!fingerprint.isEnrolled()) {
+				uni.showToast({ title: '请先在系统设置中录入指纹', icon: 'none' });
+				return;
+			}
+			fingerprint.authenticate(() => {
+				settings.value.fingerprintLock = true;
+			}, () => {
+				uni.showToast({ title: '验证失败，未开启', icon: 'none' });
+			});
+		} else {
+			settings.value.fingerprintLock = false;
+		}
+		// #endif
+		// #ifndef APP-PLUS
+		uni.showToast({ title: '仅App端支持指纹解锁', icon: 'none' })
+		// #endif
 	}
 
 	// 监听设置开关变化

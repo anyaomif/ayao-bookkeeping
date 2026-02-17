@@ -44,24 +44,16 @@
 	} from '@/api/user.js'
 	
 	onLoad(() => {
-		const settings = uni.getStorageSync('user_settings')
 		const token = uni.getStorageSync('token')
-		if (token && settings?.fingerprint_unlock?.enabled) {
-			uni.checkIsSupportSoterAuthentication({
-				success(res) {
-					if (res.supportMode.includes('fingerPrint')) {
-						uni.startSoterAuthentication({
-							requestAuthModes: ['fingerPrint'],
-							challenge: new Date().getTime().toString(),
-							authContent: '请用指纹解锁',
-							success() {
-								uni.switchTab({ url: '/pages/index/index' })
-							},
-							fail() {}
-						})
-					}
-				}
-			})
+		if (token) {
+			const mode = uni.getStorageSync('app_mode')
+			if (!mode) {
+				uni.reLaunch({ url: '/pages/mode/select' })
+			} else if (mode === 'work') {
+				uni.reLaunch({ url: '/pages/index/index' })
+			} else {
+				uni.reLaunch({ url: '/pages/personal/dashboard' })
+			}
 		}
 	})
 
@@ -102,15 +94,16 @@
 			// 存储token
 			uni.setStorageSync('token', res.data.token)
 
-			// 跳转到首页
-			uni.switchTab({
-				url: '/pages/index/index'
-			})
+			uni.showToast({ title: '登录成功', icon: 'success' })
 
-			uni.showToast({
-				title: '登录成功',
-				icon: 'success'
-			})
+			const mode = uni.getStorageSync('app_mode')
+			if (!mode) {
+				uni.reLaunch({ url: '/pages/mode/select' })
+			} else if (mode === 'work') {
+				uni.reLaunch({ url: '/pages/index/index' })
+			} else {
+				uni.reLaunch({ url: '/pages/personal/dashboard' })
+			}
 		} catch (error) {
 			console.error('登录失败：', error)
 		} finally {

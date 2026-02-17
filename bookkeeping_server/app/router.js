@@ -75,6 +75,7 @@ module.exports = app => {
 
   // AI智能记账
   router.post('/api/personal/ai/stream', jwt, controller.ai.stream);
+  router.post('/api/personal/ai/chat', jwt, controller.ai.chat);
   router.post('/api/personal/ai/confirm', jwt, controller.ai.confirm);
 
   // 用户

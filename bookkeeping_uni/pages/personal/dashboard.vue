@@ -527,6 +527,9 @@ onShow(() => { loadData(); initSwipeTip(); });
 	gap: 16rpx;
 	padding-left: 24rpx;
 	background: #fff;
+	height: 100%;
+	padding-right: 10rpx;
+	box-sizing: border-box;
 }
 
 .icon-wrapper {
