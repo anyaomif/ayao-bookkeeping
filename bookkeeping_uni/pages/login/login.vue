@@ -96,6 +96,12 @@
 
 			uni.showToast({ title: '登录成功', icon: 'success' })
 
+			// 优先使用服务端存储的模式
+			const serverMode = res.data.app_mode
+			if (serverMode) {
+				uni.setStorageSync('app_mode', serverMode)
+			}
+
 			const mode = uni.getStorageSync('app_mode')
 			if (!mode) {
 				uni.reLaunch({ url: '/pages/mode/select' })

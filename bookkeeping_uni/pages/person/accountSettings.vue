@@ -225,19 +225,17 @@
 	const onFingerprintToggle = (val) => {
 		// #ifdef APP-PLUS
 		if (val) {
-			const fingerprint = plus.fingerprint;
-			if (!fingerprint) {
+			if (!plus.fingerprint || !plus.fingerprint.isSupport()) {
 				uni.showToast({ title: '设备不支持指纹识别', icon: 'none' });
 				return;
 			}
-			fingerprint.isEnrolled()
-			if (!fingerprint.isEnrolled()) {
+			if (!plus.fingerprint.isEnrolledFingerprints()) {
 				uni.showToast({ title: '请先在系统设置中录入指纹', icon: 'none' });
 				return;
 			}
-			fingerprint.authenticate(() => {
+			plus.fingerprint.authenticate({}, () => {
 				settings.value.fingerprintLock = true;
-			}, () => {
+			}, (err) => {
 				uni.showToast({ title: '验证失败，未开启', icon: 'none' });
 			});
 		} else {

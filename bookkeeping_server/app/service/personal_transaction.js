@@ -186,6 +186,76 @@ class PersonalTransactionService extends Service {
       daily: Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date)),
     };
   }
+  // 用户个人统计（我的页面）
+  async getUserStats(userId) {
+    const Op = this.app.Sequelize.Op;
+    const fn = this.app.Sequelize.fn;
+    const col = this.app.Sequelize.col;
+
+    // 总支出/总收入
+    const totals = await this.ctx.model.PersonalTransaction.findAll({
+      where: { user_id: userId, type: { [Op.in]: ['expense', 'income'] } },
+      attributes: ['type', [fn('SUM', col('amount')), 'total']],
+      group: ['type'],
+      raw: true,
+    });
+    let totalExpense = 0, totalIncome = 0;
+    for (const row of totals) {
+      if (row.type === 'expense') totalExpense = Number(row.total) || 0;
+      if (row.type === 'income') totalIncome = Number(row.total) || 0;
+    }
+
+    // 记账天数（去重日期）
+    const days = await this.ctx.model.PersonalTransaction.findAll({
+      where: { user_id: userId },
+      attributes: [[fn('DISTINCT', col('date')), 'date']],
+      raw: true,
+    });
+    const dateSet = new Set(days.map(d => d.date).filter(Boolean));
+    const totalRecordDays = dateSet.length || dateSet.size;
+
+    // 连续记账天数
+    const sortedDates = [...dateSet].sort();
+    let currentConsecutive = 0, maxConsecutive = 0;
+    if (sortedDates.length > 0) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      // 从今天往前数连续天数
+      let checkDate = new Date(today);
+      currentConsecutive = 0;
+      while (true) {
+        const ds = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+        if (dateSet.has(ds)) {
+          currentConsecutive++;
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+      // 最大连续天数
+      let streak = 1;
+      maxConsecutive = 1;
+      for (let i = 1; i < sortedDates.length; i++) {
+        const prev = new Date(sortedDates[i - 1]);
+        const curr = new Date(sortedDates[i]);
+        const diff = (curr - prev) / (1000 * 60 * 60 * 24);
+        if (diff === 1) {
+          streak++;
+          if (streak > maxConsecutive) maxConsecutive = streak;
+        } else {
+          streak = 1;
+        }
+      }
+    }
+
+    return {
+      total_record_days: totalRecordDays,
+      current_consecutive_days: currentConsecutive,
+      max_consecutive_days: maxConsecutive,
+      total_expense: Number(totalExpense.toFixed(2)),
+      total_income: Number(totalIncome.toFixed(2)),
+    };
+  }
 }
 
 module.exports = PersonalTransactionService;

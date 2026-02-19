@@ -1,7 +1,7 @@
 <template>
 	<view class="dashboard-container">
 		<!-- 自定义导航栏 -->
-		<NavbarWrapper sticky>
+		<NavbarWrapper sticky bgColor="#F8F8F8">
 			<view class="custom-navbar">
 				<view class="nav-left" @click="showMenu = true">
 					<tn-icon name="menu-list" size="44"></tn-icon>

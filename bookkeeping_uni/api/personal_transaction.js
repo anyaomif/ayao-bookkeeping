@@ -7,4 +7,5 @@ export const personalTransactionApi = {
   update(id, data) { return http.put(`/personal/transactions/${id}`, data) },
   delete(id) { return http.delete(`/personal/transactions/${id}`) },
   getStatistics(params) { return http.get('/personal/statistics', params) },
+  getUserStats() { return http.get('/personal/statistics/user-stats') },
 }

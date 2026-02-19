@@ -27,6 +27,10 @@ export const userApi = {
 		return http.put('/user/password', data)
 	},
 
+	updateMode(app_mode) {
+		return http.put('/user/mode', { app_mode })
+	},
+
 	// 获取工作统计数据
 	getWorkStats() {
 		return http.get('/user/work-stats')

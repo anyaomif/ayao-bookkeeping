@@ -66,11 +66,11 @@
 				<view class="form-section">
 					<view class="form-item">
 						<text class="form-label">账户名称</text>
-						<ay-input v-model="accountForm.name" placeholder="请输入账户名称" border="surround" />
+						<ay-input v-model="accountForm.name" placeholder="请输入账户名称" :border="true" />
 					</view>
 					<view class="form-item">
 						<text class="form-label">账户余额</text>
-						<ay-input v-model="accountForm.balance" placeholder="请输入账户余额" type="digit" border="surround" />
+						<ay-input v-model="accountForm.balance" placeholder="请输入账户余额" type="digit" :border="true" />
 					</view>
 					<view class="form-item">
 						<text class="form-label">选择图标</text>

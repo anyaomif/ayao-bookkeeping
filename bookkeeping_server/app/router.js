@@ -72,6 +72,7 @@ module.exports = app => {
   router.put('/api/personal/transactions/:id', jwt, controller.personalTransaction.update);
   router.delete('/api/personal/transactions/:id', jwt, controller.personalTransaction.destroy);
   router.get('/api/personal/statistics', jwt, controller.personalTransaction.statistics);
+  router.get('/api/personal/statistics/user-stats', jwt, controller.personalTransaction.userStats);
 
   // AI智能记账
   router.post('/api/personal/ai/stream', jwt, controller.ai.stream);
@@ -83,6 +84,7 @@ module.exports = app => {
   router.post('/api/user/login', loginSchema, controller.user.login);
   router.get('/api/user/info', jwt, controller.user.info);
   router.put('/api/user/update', jwt, controller.user.update);
+  router.put('/api/user/mode', jwt, controller.user.updateMode);
   router.put('/api/user/password', jwt, passwordSchema, controller.user.updatePassword);
 
   // 项目

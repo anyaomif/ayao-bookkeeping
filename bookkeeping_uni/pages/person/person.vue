@@ -57,14 +57,26 @@
 				</view>
 			</view>
 			<view class="statistics" style="border: none;">
-				<view class="stat-item" @tap="toggleAmountDisplay">
-					<text class="number">¥{{isAmountHidden ? '****' : formatNumber(statistics.totalIncome || 0)}}</text>
-					<text class="label">总收入</text>
-				</view>
-				<view class="stat-item" @tap="toggleAmountDisplay">
-					<text class="number">¥{{isAmountHidden ? '****' : formatNumber(statistics.averageDailyWage || 0)}}</text>
-					<text class="label">平均日薪</text>
-				</view>
+				<template v-if="appMode === 'personal'">
+					<view class="stat-item" @tap="toggleAmountDisplay">
+						<text class="number">¥{{isAmountHidden ? '****' : formatNumber(statistics.totalExpense || 0)}}</text>
+						<text class="label">总支出</text>
+					</view>
+					<view class="stat-item" @tap="toggleAmountDisplay">
+						<text class="number">¥{{isAmountHidden ? '****' : formatNumber(statistics.totalIncome || 0)}}</text>
+						<text class="label">总收入</text>
+					</view>
+				</template>
+				<template v-else>
+					<view class="stat-item" @tap="toggleAmountDisplay">
+						<text class="number">¥{{isAmountHidden ? '****' : formatNumber(statistics.totalIncome || 0)}}</text>
+						<text class="label">总收入</text>
+					</view>
+					<view class="stat-item" @tap="toggleAmountDisplay">
+						<text class="number">¥{{isAmountHidden ? '****' : formatNumber(statistics.averageDailyWage || 0)}}</text>
+						<text class="label">平均日薪</text>
+					</view>
+				</template>
 			</view>
 				</view>
 			</ay-skeleton>
@@ -117,6 +129,9 @@
 		userApi
 	} from '@/api/user.js'
 	import {
+		personalTransactionApi
+	} from '@/api/personal_transaction.js'
+	import {
 		baseUrl,
 		formatNumber
 	} from '@/utils/ayao.js'
@@ -132,7 +147,8 @@
 		currentConsecutiveDays: 0,
 		maxConsecutiveDays: 0,
 		averageDailyWage: 0,
-		totalIncome: 0
+		totalIncome: 0,
+		totalExpense: 0
 	})
 
 	const pageLoaded = ref(false)
@@ -177,27 +193,38 @@
 		}
 	}
 
-	// 获取工作统计数据
-	const getWorkStats = async () => {
+	// 获取统计数据（根据模式）
+	const getStats = async () => {
 		try {
-			const res = await userApi.getWorkStats()
-			if (res.success) {
-				statistics.value = {
-					totalRecordDays: res.data.total_record_days || 0,
-					currentConsecutiveDays: res.data.current_consecutive_days || 0,
-					maxConsecutiveDays: res.data.max_consecutive_days || 0,
-					averageDailyWage: res.data.average_daily_wage || 0,
-					totalIncome: res.data.total_income || 0
+			if (appMode.value === 'personal') {
+				const res = await personalTransactionApi.getUserStats()
+				if (res.success) {
+					statistics.value = {
+						totalRecordDays: res.data.total_record_days || 0,
+						currentConsecutiveDays: res.data.current_consecutive_days || 0,
+						maxConsecutiveDays: res.data.max_consecutive_days || 0,
+						totalExpense: res.data.total_expense || 0,
+						totalIncome: res.data.total_income || 0,
+						averageDailyWage: 0,
+					}
 				}
-				pageLoaded.value = true
+			} else {
+				const res = await userApi.getWorkStats()
+				if (res.success) {
+					statistics.value = {
+						totalRecordDays: res.data.total_record_days || 0,
+						currentConsecutiveDays: res.data.current_consecutive_days || 0,
+						maxConsecutiveDays: res.data.max_consecutive_days || 0,
+						totalExpense: 0,
+						totalIncome: res.data.total_income || 0,
+						averageDailyWage: res.data.average_daily_wage || 0,
+					}
+				}
 			}
+			pageLoaded.value = true
 		} catch (error) {
 			pageLoaded.value = true
-			console.error('获取工作统计数据失败:', error)
-			uni.showToast({
-				title: '获取统计数据失败',
-				icon: 'none'
-			})
+			console.error('获取统计数据失败:', error)
 		}
 	}
 
@@ -260,7 +287,7 @@
 		appMode.value = uni.getStorageSync('app_mode') || 'work';
 		loadUserSettings()
 		getUserInfo()
-		getWorkStats()
+		getStats()
 	})
 
 	// 在组件销毁时清理定时器

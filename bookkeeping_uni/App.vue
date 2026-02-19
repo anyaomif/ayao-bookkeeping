@@ -36,14 +36,29 @@
 					return
 				}
 				const mode = uni.getStorageSync('app_mode')
-				if (!mode) {
-					uni.reLaunch({ url: '/pages/mode/select' })
+				if (mode) {
+					if (mode === 'work') {
+						uni.reLaunch({ url: '/pages/index/index' })
+					}
+					// personal 不跳转，已在 dashboard
 					return
 				}
-				if (mode === 'work') {
-					uni.reLaunch({ url: '/pages/index/index' })
-				}
-				// mode === 'personal' 不跳转，已在 dashboard
+				// 本地无 mode，从服务端获取
+				const http = require('@/utils/request.js').default
+				http.get('/user/info').then(res => {
+					if (res.success && res.data.app_mode) {
+						uni.setStorageSync('app_mode', res.data.app_mode)
+						if (res.data.app_mode === 'work') {
+							uni.reLaunch({ url: '/pages/index/index' })
+						} else {
+							uni.reLaunch({ url: '/pages/personal/dashboard' })
+						}
+					} else {
+						uni.reLaunch({ url: '/pages/mode/select' })
+					}
+				}).catch(() => {
+					uni.reLaunch({ url: '/pages/mode/select' })
+				})
 			},
 			schedulePushIfEnabled() {
 				const s = uni.getStorageSync('user_settings')

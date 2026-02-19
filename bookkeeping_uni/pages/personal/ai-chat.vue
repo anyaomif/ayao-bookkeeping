@@ -220,7 +220,9 @@ onLoad(() => {
 		clearInterval(recordingTimer);
 		recording.value = false;
 		recordingTime.value = 0;
-		console.log('[ASR] 录音错误:', err);
+		// err 在部分平台可能是空对象，用 JSON.stringify 安全打印
+		const errMsg = (err && (err.errMsg || err.message)) ? (err.errMsg || err.message) : JSON.stringify(err);
+		console.log('[ASR] 录音错误:', errMsg);
 		uni.showToast({ title: '录音出错', icon: 'none' });
 	});
 
@@ -393,22 +395,102 @@ const toggleRecording = () => {
 	}
 };
 
-const startRecording = () => {
+const doStartRecording = () => {
 	recording.value = true;
 	recordingTime.value = 0;
 	recordingTimer = setInterval(() => {
 		recordingTime.value++;
 		if (recordingTime.value >= 60) stopRecording();
 	}, 1000);
-	// #ifdef APP-PLUS || MP
 	recorderManager?.start({
 		format: 'mp3',
 		sampleRate: 16000,
 		numberOfChannels: 1,
 		encodeBitRate: 96000,
 	});
+};
+
+const requestAppRecordPermission = (onGranted) => {
+	// #ifdef APP-PLUS
+	const isAndroid = uni.getSystemInfoSync().platform === 'android';
+	if (isAndroid) {
+		// checkPermission: 1=已授权, 0=未授权, -1=被禁止
+		const status = plus.android.checkPermission('android.permission.RECORD_AUDIO');
+		if (status === 1) {
+			onGranted();
+			return;
+		}
+		// 未授权直接发起系统原生弹窗
+		plus.android.requestPermissions(
+			['android.permission.RECORD_AUDIO'],
+			(e) => {
+				if (e.granted.length > 0) {
+					onGranted();
+				} else {
+					// 用户拒绝（含永久拒绝），引导去应用权限设置页
+					// 使用原生 Intent 跳转，兼容 MIUI/鸿蒙等定制系统
+					uni.showModal({
+						title: '需要麦克风权限',
+						content: '请授权麦克风权限以使用语音录入功能',
+						confirmText: '去设置',
+						cancelText: '取消',
+						success(res) {
+							if (res.confirm) {
+								try {
+									const Intent = plus.android.importClass('android.content.Intent');
+									const Settings = plus.android.importClass('android.provider.Settings');
+									const Uri = plus.android.importClass('android.net.Uri');
+									const intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+									intent.setData(Uri.parse('package:' + plus.runtime.appid));
+									plus.android.runtimeMainActivity().startActivity(intent);
+								} catch (err) {
+									uni.showToast({ title: '请手动在设置中开启麦克风权限', icon: 'none' });
+								}
+							}
+						}
+					});
+				}
+			},
+			() => {
+				uni.showToast({ title: '权限申请失败', icon: 'none' });
+			}
+		);
+	} else {
+		// iOS 首次录音系统自动弹窗，无需预申请
+		onGranted();
+	}
+	// #endif
+};
+
+const startRecording = () => {
+	// #ifdef APP-PLUS
+	requestAppRecordPermission(doStartRecording);
+	// #endif
+	// #ifdef MP-WEIXIN
+	uni.authorize({
+		scope: 'scope.record',
+		success() {
+			doStartRecording();
+		},
+		fail() {
+			uni.showModal({
+				title: '需要麦克风权限',
+				content: '请授权麦克风权限以使用语音功能',
+				confirmText: '去设置',
+				success(res) {
+					if (res.confirm) uni.openSetting();
+				}
+			});
+		}
+	});
 	// #endif
 	// #ifdef H5
+	recording.value = true;
+	recordingTime.value = 0;
+	recordingTimer = setInterval(() => {
+		recordingTime.value++;
+		if (recordingTime.value >= 60) stopRecording();
+	}, 1000);
 	h5AudioChunks = [];
 	if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
 		clearInterval(recordingTimer);

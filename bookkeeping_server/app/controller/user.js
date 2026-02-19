@@ -52,7 +52,7 @@ class UserController extends Controller {
 
     ctx.success({
       id: user.id, username: user.username, nickname: user.nickname,
-      phone: user.phone, token,
+      phone: user.phone, token, app_mode: user.app_mode || '',
     });
   }
 
@@ -63,7 +63,7 @@ class UserController extends Controller {
 
     ctx.success({
       id: user.id, username: user.username, nickname: user.nickname,
-      phone: user.phone, avatar: user.avatar,
+      phone: user.phone, avatar: user.avatar, app_mode: user.app_mode || '',
     });
   }
 
@@ -77,8 +77,18 @@ class UserController extends Controller {
 
     ctx.success({
       id: user.id, username: user.username, nickname: user.nickname,
-      phone: user.phone, avatar: user.avatar,
+      phone: user.phone, avatar: user.avatar, app_mode: user.app_mode || '',
     });
+  }
+
+  async updateMode() {
+    const { ctx } = this;
+    const user = await ctx.model.User.findByPk(ctx.state.user.id);
+    if (!user) ctx.throw(404, '用户不存在');
+    const { app_mode } = ctx.request.body;
+    if (!['work', 'personal'].includes(app_mode)) ctx.throw(400, '无效的模式');
+    await user.update({ app_mode });
+    ctx.success({ app_mode });
   }
 
   async updatePassword() {

@@ -51,7 +51,11 @@ export const navigateTo = (url, params) => {
 // 取路由参数
 export const getParams = (data) => {
 	if (data && data.params) {
-		return JSON.parse(data.params)
+		try {
+			return JSON.parse(decodeURIComponent(data.params))
+		} catch (e) {
+			return JSON.parse(data.params)
+		}
 	} else {
 		return null
 	}

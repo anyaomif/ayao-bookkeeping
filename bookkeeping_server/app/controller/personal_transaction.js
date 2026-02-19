@@ -38,6 +38,12 @@ class PersonalTransactionController extends Controller {
     const data = await ctx.service.personalTransaction.getMonthlyStats(year, month, ctx.state.user.id);
     ctx.success(data);
   }
+
+  async userStats() {
+    const { ctx } = this;
+    const data = await ctx.service.personalTransaction.getUserStats(ctx.state.user.id);
+    ctx.success(data);
+  }
 }
 
 module.exports = PersonalTransactionController;

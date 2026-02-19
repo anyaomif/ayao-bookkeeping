@@ -121,7 +121,7 @@ class AiService extends Service {
     if (!apiKey) { onError(new Error('ZHIPU_API_KEY 未配置')); return; }
 
     const body = JSON.stringify({
-      model: 'glm-4.7-flash',
+      model: 'glm-4-flash-250414',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },

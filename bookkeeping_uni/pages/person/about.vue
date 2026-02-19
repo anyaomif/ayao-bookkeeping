@@ -4,12 +4,12 @@
 		<view class="app-info">
 			<image class="app-logo" src="/static/logo.png" mode="aspectFill"></image>
 			<text class="app-name">俺要记账</text>
-			<text class="app-version">v1.0.0</text>
+			<text class="app-version">v1.1.0</text>
 		</view>
 
 		<!-- 产品介绍 -->
 		<view class="product-intro">
-			<text class="intro-text">俺要(安尧)记账是一款简单易用的记账工具，旨在帮助用户轻松记录日常收入和支出，提供清晰的财务统计，助力用户更好地管理个人财务。</text>
+			<text class="intro-text">俺要(安尧)记账是一款智能记账工具，支持语音/文字AI智能记账、多账户管理、分类统计等功能，帮助你轻松掌控个人财务。</text>
 		</view>
 
 		<!-- 功能介绍 -->
@@ -18,31 +18,45 @@
 			<view class="feature-list">
 				<view class="feature-item">
 					<view class="icon-box">
-						<tn-icon name="calendar" size="48" color="#ff6700"></tn-icon>
+						<tn-icon name="ai-fill" size="48" color="#ff6700"></tn-icon>
 					</view>
-					<text class="feature-name">日常记账</text>
-					<text class="feature-desc">轻松记录每日工作收入</text>
+					<text class="feature-name">AI 智能记账</text>
+					<text class="feature-desc">语音/文字一句话快速记账</text>
 				</view>
 				<view class="feature-item">
 					<view class="icon-box">
 						<tn-icon name="refund" size="48" color="#ff6700"></tn-icon>
 					</view>
-					<text class="feature-name">收入统计</text>
-					<text class="feature-desc">清晰掌握收入情况</text>
+					<text class="feature-name">收支统计</text>
+					<text class="feature-desc">清晰掌握收支情况</text>
 				</view>
 				<view class="feature-item">
 					<view class="icon-box">
-						<tn-icon name="bookmark" size="48" color="#ff6700"></tn-icon>
+						<tn-icon name="bankcard" size="48" color="#ff6700"></tn-icon>
 					</view>
-					<text class="feature-name">项目管理</text>
-					<text class="feature-desc">多项目分类管理</text>
+					<text class="feature-name">多账户管理</text>
+					<text class="feature-desc">银行卡、现金、支付宝等</text>
 				</view>
 				<view class="feature-item">
 					<view class="icon-box">
-						<tn-icon name="time" size="48" color="#ff6700"></tn-icon>
+						<tn-icon name="category" size="48" color="#ff6700"></tn-icon>
 					</view>
-					<text class="feature-name">工时记录</text>
-					<text class="feature-desc">准确记录工作时间</text>
+					<text class="feature-name">分类管理</text>
+					<text class="feature-desc">自定义收支分类</text>
+				</view>
+				<view class="feature-item">
+					<view class="icon-box">
+						<tn-icon name="lock" size="48" color="#ff6700"></tn-icon>
+					</view>
+					<text class="feature-name">隐私保护</text>
+					<text class="feature-desc">指纹解锁、金额隐藏</text>
+				</view>
+				<view class="feature-item">
+					<view class="icon-box">
+						<tn-icon name="calendar" size="48" color="#ff6700"></tn-icon>
+					</view>
+					<text class="feature-name">明细查询</text>
+					<text class="feature-desc">按月查看收支明细</text>
 				</view>
 			</view>
 		</view>
@@ -64,7 +78,7 @@
 
 		<!-- 版权信息 -->
 		<view class="copyright">
-			<text>Copyright © 2025 smallAnYao</text>
+			<text>Copyright © 2025-2026 smallAnYao</text>
 			<text>All Rights Reserved</text>
 		</view>
 	</view>

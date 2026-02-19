@@ -47,6 +47,7 @@
 	import { onLoad } from '@dcloudio/uni-app';
 	import { personalCategoryApi } from '@/api/personal_category';
 	import { personalAccountApi } from '@/api/personal_account';
+	import { userApi } from '@/api/user';
 
 	const fromPerson = ref(false);
 
@@ -61,6 +62,8 @@
 	const selectMode = (mode) => {
 		uni.vibrateShort();
 		uni.setStorageSync('app_mode', mode);
+		// 同步到服务端
+		userApi.updateMode(mode).catch(() => {});
 
 		uni.showToast({
 			title: `已选择: ${mode === 'work' ? '工地记工' : '个人记账'}`,

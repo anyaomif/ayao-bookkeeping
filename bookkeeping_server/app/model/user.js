@@ -8,6 +8,7 @@ module.exports = app => {
     nickname: { type: STRING(50) },
     avatar: { type: STRING(200) },
     phone: { type: STRING(20) },
+    app_mode: { type: STRING(20), defaultValue: '' },
     created_at: { type: DATE },
     updated_at: { type: DATE },
   }, {
@@ -17,7 +18,7 @@ module.exports = app => {
   });
 
   // 表结构变更请使用 migration
-  User.sync();
+  User.sync({ alter: true });
 
   return User;
 };
