@@ -20,6 +20,8 @@
 			console.log('App Show')
 			// #ifdef APP-PLUS
 			this.checkFingerprintAuth()
+			const clientInfo = plus.push.getClientInfo()
+				console.log(123,clientInfo);
 			// #endif
 		},
 		onHide: function() {
@@ -98,11 +100,25 @@
 				uni.navigateTo({ url: '/pages/lock/lock' })
 			},
 			doFingerprintAuth() {
-				if (!plus.fingerprint) return
-				plus.fingerprint.authenticate(() => {
-					this.globalData.needAuth = false
-					this.globalData.isLockPageOpen = false
-				}, () => {})
+				uni.checkIsSupportSoterAuthentication({
+					success(res) {
+						const modes = res.supportMode || [];
+						if (!modes.length) return;
+						const authMode = modes.includes('facial') ? 'facial' : 'fingerPrint';
+						uni.startSoterAuthentication({
+							requestAuthModes: [authMode],
+							challenge: String(Date.now()),
+							authContent: '请验证身份以解锁应用',
+							success: () => {
+								const app = getApp();
+								app.globalData.needAuth = false;
+								app.globalData.isLockPageOpen = false;
+							},
+							fail() {}
+						});
+					},
+					fail() {}
+				});
 			},
 			initializeApp() {
 				try {

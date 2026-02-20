@@ -2,7 +2,10 @@ import http from '@/utils/request'
 import config from '@/utils/config'
 
 export const aiApi = {
-  confirm(items) { return http.post('/personal/ai/confirm', { items }) },
+  confirm(items, msgId) { return http.post('/personal/ai/confirm', { items, msgId }) },
+  getHistory(page = 1, pageSize = 100) { return http.get('/personal/ai/history', { page, pageSize }) },
+  clearHistory() { return http.delete('/personal/ai/history') },
+  discard(msgId) { return http.post('/personal/ai/discard', { msgId }) },
 };
 
 // 语音转文字（5555api.com ASR）

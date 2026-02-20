@@ -6,7 +6,9 @@
 					<tn-icon name="left" size="44" :color="isDark ? '#f5f5f5' : '#1c1c1e'"></tn-icon>
 				</view>
 				<text class="nav-title">小尧 AI 智能记账</text>
-				<view class="nav-right"></view>
+				<view class="nav-right" @click="handleClearHistory">
+					<tn-icon name="delete" size="40" :color="isDark ? '#f5f5f5' : '#1c1c1e'"></tn-icon>
+				</view>
 			</view>
 		</NavbarWrapper>
 
@@ -261,6 +263,8 @@ onLoad(() => {
 			list.forEach(a => { accountMap.value[a.id] = a.name; });
 		}
 	});
+
+	loadHistory();
 });
 
 onUnload(() => {
@@ -274,18 +278,51 @@ onUnload(() => {
 
 onShow(() => { refreshTheme(); });
 
-const messages = ref([
-	{
-		role: 'ai',
-		content: '你好！我是小尧，你的 AI 记账助手 🤖\n\n我可以帮你：\n· 语音/文字快速记账\n· 查看和管理分类、账户\n· 修改待确认的记录\n\n试试下面的快捷操作，或直接告诉我你的消费吧～',
-		quickActions: [
-			{ label: '☕ 早餐花了15', text: '早餐花了15' },
-			{ label: '📋 查看分类', text: '查看我的分类' },
-			{ label: '💳 查看账户', text: '查看我的账户' },
-			{ label: '➕ 添加分类', text: '帮我添加一个支出分类叫娱乐' },
-		]
+const defaultWelcome = {
+	role: 'ai',
+	content: '你好！我是小尧，你的 AI 记账助手 🤖\n\n我可以帮你：\n· 语音/文字快速记账\n· 查看和管理分类、账户\n· 修改待确认的记录\n\n试试下面的快捷操作，或直接告诉我你的消费吧～',
+	quickActions: [
+		{ label: '☕ 早餐花了15', text: '早餐花了15' },
+		{ label: '📋 查看分类', text: '查看我的分类' },
+		{ label: '💳 查看账户', text: '查看我的账户' },
+		{ label: '➕ 添加分类', text: '帮我添加一个支出分类叫娱乐' },
+	]
+};
+
+const messages = ref([{ ...defaultWelcome }]);
+const historyLoaded = ref(false);
+
+const loadHistory = async () => {
+	try {
+		const res = await aiApi.getHistory(1, 200);
+		if (res.success && res.data?.list?.length) {
+			const list = res.data.list.map(m => {
+				const msg = { role: m.role, content: m.role === 'ai' ? cleanAiText(m.content) : m.content, msgId: m.id };
+				if (m.extra) {
+					if (m.extra.pendingCards) msg.pendingCards = m.extra.pendingCards;
+					if (m.extra.confirmed) msg.confirmed = true;
+					if (m.extra.discarded) msg.discarded = true;
+					msg.showActions = m.extra.showActions || false;
+				}
+				return msg;
+			});
+			messages.value = [{ ...defaultWelcome }, ...list];
+			// 恢复最后一条未处理的 pending 状态
+			for (let i = messages.value.length - 1; i >= 0; i--) {
+				const m = messages.value[i];
+				if (m.pendingCards?.length && m.showActions && !m.confirmed && !m.discarded) {
+					pendingItems.value = m.pendingCards;
+					pendingMsgIdx.value = i;
+					break;
+				}
+			}
+		}
+		historyLoaded.value = true;
+		scrollToBottom();
+	} catch (e) {
+		historyLoaded.value = true;
 	}
-]);
+};
 
 const inputPlaceholder = computed(() => {
 	if (pendingItems.value) return '可以说"改成20块"或"换成午餐"来修改...';
@@ -334,7 +371,7 @@ const sendMessage = () => {
 		},
 		async (result) => {
 			const cleanText = cleanAiText(fullText);
-			const msg = { role: 'ai', content: cleanText || '已处理' };
+			const msg = { role: 'ai', content: cleanText || '已处理', msgId: result.msgId };
 
 			if (result.success && result.action) {
 				await handleAction(result.action, result.data, msg);
@@ -373,7 +410,7 @@ const confirmPending = async (msgIdx) => {
 	if (!msg?.pendingCards?.length) return;
 
 	try {
-		await aiApi.confirm(msg.pendingCards);
+		await aiApi.confirm(msg.pendingCards, msg.msgId);
 		msg.showActions = false;
 		msg.confirmed = true;
 		pendingItems.value = null;
@@ -384,13 +421,16 @@ const confirmPending = async (msgIdx) => {
 	}
 };
 
-const discardPending = (msgIdx) => {
+const discardPending = async (msgIdx) => {
 	const msg = messages.value[msgIdx];
 	if (!msg) return;
 	msg.showActions = false;
 	msg.discarded = true;
 	pendingItems.value = null;
 	pendingMsgIdx.value = -1;
+	if (msg.msgId) {
+		try { await aiApi.discard(msg.msgId); } catch (e) { /* 静默 */ }
+	}
 };
 
 const toggleRecording = () => {
@@ -565,6 +605,26 @@ const handleRecordingResult = (fileOrBlob) => {
 };
 
 const goBack = () => { uni.navigateBack(); };
+
+const handleClearHistory = () => {
+	uni.showModal({
+		title: '提示',
+		content: '确定清空所有聊天记录？',
+		success: async (res) => {
+			if (res.confirm) {
+				try {
+					await aiApi.clearHistory();
+					messages.value = [{ ...defaultWelcome }];
+					pendingItems.value = null;
+					pendingMsgIdx.value = -1;
+					uni.showToast({ title: '已清空', icon: 'success' });
+				} catch (e) {
+					uni.showToast({ title: '清空失败', icon: 'none' });
+				}
+			}
+		}
+	});
+};
 
 const refreshCategoryMap = async () => {
 	const res = await personalCategoryApi.getAll();

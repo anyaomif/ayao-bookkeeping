@@ -202,6 +202,6 @@ defineExpose({ open, close, closeAll });
 	align-items: center;
 	justify-content: center;
 	gap: 20rpx;
-	background-color: var(--bg-card-border);
+	background-color: var(--bg-input);
 }
 </style>

@@ -114,6 +114,11 @@ class RecordService extends Service {
   }
 
   // 计算统计日期范围
+  // 本地日期格式化，避免 toISOString 的时区偏移
+  _formatDate(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
   _calcDateRange(type, startDate, endDate) {
     const today = new Date();
     const year = today.getFullYear();
@@ -123,22 +128,22 @@ class RecordService extends Service {
       case 'month':
         return {
           start: `${year}-${String(month).padStart(2, '0')}-01`,
-          end: new Date(year, month, 0).toISOString().split('T')[0],
+          end: this._formatDate(new Date(year, month, 0)),
         };
       case 'lastMonth': {
         const lm = month === 1 ? 12 : month - 1;
         const ly = month === 1 ? year - 1 : year;
         return {
           start: `${ly}-${String(lm).padStart(2, '0')}-01`,
-          end: new Date(ly, lm, 0).toISOString().split('T')[0],
+          end: this._formatDate(new Date(ly, lm, 0)),
         };
       }
       case 'year':
         return { start: `${year}-01-01`, end: `${year}-12-31` };
       case 'custom':
         return {
-          start: new Date(startDate).toISOString().split('T')[0],
-          end: new Date(endDate).toISOString().split('T')[0],
+          start: this._formatDate(new Date(startDate)),
+          end: this._formatDate(new Date(endDate)),
         };
       default:
         return { start: startDate, end: endDate };
@@ -233,8 +238,8 @@ class RecordService extends Service {
         project: project_id,
         date: {
           [Op.between]: [
-            prevStart.toISOString().split('T')[0],
-            prevEnd.toISOString().split('T')[0],
+            this._formatDate(prevStart),
+            this._formatDate(prevEnd),
           ],
         },
       },

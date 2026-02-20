@@ -48,6 +48,16 @@ module.exports = app => {
   router.post('/api/check-update', checkUpdateSchema, controller.home.checkUpdate);
   router.post('/upload', jwt, controller.upload.upload);
 
+  // ========== 管理后台 ==========
+  router.get('/admin', controller.admin.page);
+  router.post('/api/admin/login', controller.admin.login);
+  router.put('/api/admin/password', jwt, controller.admin.changePassword);
+  router.get('/api/admin/dashboard', jwt, controller.admin.dashboard);
+  router.get('/api/admin/versions', jwt, controller.admin.listVersions);
+  router.post('/api/admin/versions', jwt, controller.admin.createVersion);
+  router.put('/api/admin/versions/:id', jwt, controller.admin.updateVersion);
+  router.delete('/api/admin/versions/:id', jwt, controller.admin.deleteVersion);
+
   // ========== 个人记账模块 ==========
   // 账户
   router.post('/api/personal/accounts/init', jwt, controller.personalAccount.init);
@@ -80,6 +90,9 @@ module.exports = app => {
   router.post('/api/personal/ai/stream', jwt, controller.ai.stream);
   router.post('/api/personal/ai/chat', jwt, controller.ai.chat);
   router.post('/api/personal/ai/confirm', jwt, controller.ai.confirm);
+  router.get('/api/personal/ai/history', jwt, controller.ai.history);
+  router.delete('/api/personal/ai/history', jwt, controller.ai.clearHistory);
+  router.post('/api/personal/ai/discard', jwt, controller.ai.discard);
 
   // 用户
   router.post('/api/user/register', registerSchema, controller.user.register);

@@ -5,9 +5,9 @@
 			<image class="auth-logo" src="/static/logo.png" mode="aspectFit"></image>
 			<text class="auth-title">俺要记账</text>
 			<view class="auth-icon">
-				<tn-icon name="fingerprint" size="120" color="#ff6700"></tn-icon>
+				<tn-icon name="shield" size="120" color="#ff6700"></tn-icon>
 			</view>
-			<text class="auth-tip">请验证指纹以解锁</text>
+			<text class="auth-tip">请验证身份以解锁</text>
 			<view class="auth-retry" @click="retry">
 				<text>重新验证</text>
 			</view>

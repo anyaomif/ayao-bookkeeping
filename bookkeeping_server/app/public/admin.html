@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>俺要记账 - 管理后台</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; min-height: 100vh; }
+
+/* 登录页 */
+.login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+.login-box { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); width: 360px; }
+.login-box h2 { text-align: center; margin-bottom: 30px; color: #ff6700; }
+.login-box input { width: 100%; padding: 12px 16px; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 14px; margin-bottom: 16px; outline: none; transition: border-color .2s; }
+.login-box input:focus { border-color: #ff6700; }
+.btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; transition: opacity .2s; }
+.btn:hover { opacity: 0.85; }
+.btn-primary { background: #ff6700; color: #fff; }
+.btn-danger { background: #ff4d4f; color: #fff; }
+.btn-sm { width: auto; padding: 6px 16px; font-size: 13px; }
+
+/* 主布局 */
+.app { display: none; }
+.header { background: #fff; padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.header h1 { font-size: 18px; color: #ff6700; }
+.header .user-info { display: flex; align-items: center; gap: 12px; }
+.header .logout { cursor: pointer; color: #999; font-size: 14px; }
+.header .logout:hover { color: #ff4d4f; }
+.main { max-width: 1100px; margin: 24px auto; padding: 0 24px; }
+.toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.toolbar h2 { font-size: 16px; }
+
+/* 表格 */
+table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+th, td { padding: 14px 16px; text-align: left; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+th { background: #fafafa; font-weight: 600; color: #666; }
+td .actions { display: flex; gap: 8px; }
+td .actions span { cursor: pointer; font-size: 13px; padding: 4px 10px; border-radius: 4px; }
+td .actions .edit { color: #1890ff; background: #e6f7ff; }
+td .actions .del { color: #ff4d4f; background: #fff1f0; }
+.tag { display: inline-block; padding: 2px 10px; border-radius: 4px; font-size: 12px; }
+.tag-android { background: #e6f7e9; color: #52c41a; }
+.tag-ios { background: #e6f0ff; color: #1890ff; }
+.tag-force { background: #fff1f0; color: #ff4d4f; }
+.empty { text-align: center; padding: 60px; color: #999; }
+
+/* 弹窗 */
+.modal-mask { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.45); z-index: 1000; align-items: center; justify-content: center; }
+.modal-mask.show { display: flex; }
+.modal { background: #fff; border-radius: 12px; padding: 28px; width: 480px; max-height: 90vh; overflow-y: auto; }
+.modal h3 { margin-bottom: 20px; font-size: 16px; }
+.form-item { margin-bottom: 16px; }
+.form-item label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; }
+.form-item input, .form-item select, .form-item textarea { width: 100%; padding: 10px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; outline: none; }
+.form-item input:focus, .form-item select:focus, .form-item textarea:focus { border-color: #ff6700; }
+.form-item textarea { resize: vertical; min-height: 80px; }
+.form-row { display: flex; gap: 12px; }
+.form-row .form-item { flex: 1; }
+.form-check { display: flex; align-items: center; gap: 8px; }
+.form-check input[type="checkbox"] { width: 16px; height: 16px; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+.modal-footer .btn { width: auto; padding: 8px 24px; }
+.btn-default { background: #f5f5f5; color: #333; border: 1px solid #d9d9d9; }
+
+/* Tab 导航 */
+.tab-bar { max-width: 1100px; margin: 0 auto; padding: 16px 24px 0; display: flex; gap: 0; border-bottom: 1px solid #e8e8e8; }
+.tab-item { padding: 10px 24px; cursor: pointer; font-size: 14px; color: #666; border-bottom: 2px solid transparent; transition: all .2s; }
+.tab-item:hover { color: #ff6700; }
+.tab-item.active { color: #ff6700; border-bottom-color: #ff6700; font-weight: 600; }
+
+/* 统计卡片 */
+.stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: #fff; border-radius: 10px; padding: 20px 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.stat-card .label { font-size: 13px; color: #999; margin-bottom: 8px; }
+.stat-card .value { font-size: 28px; font-weight: 700; color: #333; }
+.stat-card .sub { font-size: 12px; color: #999; margin-top: 6px; }
+.stat-card .sub .highlight { color: #ff6700; font-weight: 600; }
+
+/* 柱状图 */
+.chart-section { background: #fff; border-radius: 10px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 24px; }
+.bar-chart { display: flex; align-items: flex-end; gap: 12px; height: 180px; padding-top: 10px; }
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.bar-col .bar { width: 100%; max-width: 60px; background: linear-gradient(180deg, #ff6700, #ff8c3f); border-radius: 4px 4px 0 0; min-height: 4px; transition: height .5s ease; }
+.bar-col .bar-label { font-size: 11px; color: #999; }
+.bar-col .bar-value { font-size: 12px; color: #333; font-weight: 600; }
+
+/* 最近用户 */
+.recent-section { background: #fff; border-radius: 10px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+</style>
+</head>
+<body>
+
+<!-- 登录 -->
+<div class="login-wrap" id="loginPage">
+  <div class="login-box">
+    <h2>🔐 管理后台</h2>
+    <input type="text" id="loginUser" placeholder="账号" value="">
+    <input type="password" id="loginPass" placeholder="密码" value="">
+    <button class="btn btn-primary" onclick="doLogin()">登 录</button>
+  </div>
+</div>
+
+<!-- 主页面 -->
+<div class="app" id="appPage">
+  <div class="header">
+    <h1>📱 俺要记账 · 管理后台</h1>
+    <div class="user-info">
+      <span>admin</span>
+      <span class="logout" style="color:#1890ff;margin-right:4px;" onclick="openPwdModal()">修改密码</span>
+      <span class="logout" onclick="doLogout()">退出</span>
+    </div>
+  </div>
+  <!-- Tab 导航 -->
+  <div class="tab-bar">
+    <div class="tab-item active" onclick="switchTab('dashboard')" id="tabDashboard">📊 数据概览</div>
+    <div class="tab-item" onclick="switchTab('versions')" id="tabVersions">📦 版本管理</div>
+  </div>
+  <!-- 数据概览页 -->
+  <div class="main" id="pageDashboard">
+    <div class="stat-cards" id="statCards"></div>
+    <div class="chart-section">
+      <h3 style="margin-bottom:16px;font-size:15px;">最近7天记账趋势</h3>
+      <div class="bar-chart" id="barChart"></div>
+    </div>
+    <div class="recent-section">
+      <h3 style="margin-bottom:16px;font-size:15px;">最近注册用户</h3>
+      <table>
+        <thead><tr><th>ID</th><th>用户名</th><th>昵称</th><th>模式</th><th>注册时间</th></tr></thead>
+        <tbody id="recentUserList"></tbody>
+      </table>
+    </div>
+  </div>
+  <!-- 版本管理页 -->
+  <div class="main" id="pageVersions" style="display:none;">
+    <div class="toolbar">
+      <h2>版本列表</h2>
+      <button class="btn btn-primary btn-sm" onclick="openModal()">+ 发布新版本</button>
+    </div>
+    <table>
+      <thead><tr><th>平台</th><th>版本号</th><th>最低版本</th><th>强制更新</th><th>包大小</th><th>发布时间</th><th>操作</th></tr></thead>
+      <tbody id="versionList"></tbody>
+    </table>
+    <div class="empty" id="emptyTip" style="display:none;">暂无版本数据</div>
+  </div>
+</div>
+
+<!-- 弹窗 -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal">
+    <h3 id="modalTitle">发布新版本</h3>
+    <input type="hidden" id="editId">
+    <div class="form-row">
+      <div class="form-item">
+        <label>平台</label>
+        <select id="fPlatform"><option value="android">Android</option><option value="ios">iOS</option></select>
+      </div>
+      <div class="form-item">
+        <label>版本号</label>
+        <input type="text" id="fVersion" placeholder="1.0.0">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-item">
+        <label>最低兼容版本</label>
+        <input type="text" id="fMinVersion" placeholder="1.0.0">
+      </div>
+      <div class="form-item">
+        <label>安装包大小 (MB)</label>
+        <input type="number" id="fSize" placeholder="30" step="0.01">
+      </div>
+    </div>
+    <div class="form-item">
+      <label>下载地址</label>
+      <input type="text" id="fUrl" placeholder="https://...">
+    </div>
+    <div class="form-item">
+      <label>更新日志</label>
+      <textarea id="fLog" placeholder="本次更新内容..."></textarea>
+    </div>
+    <div class="form-item">
+      <div class="form-check">
+        <input type="checkbox" id="fForce"><label for="fForce">强制更新</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveVersion()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 修改密码弹窗 -->
+<div class="modal-mask" id="pwdModalMask">
+  <div class="modal" style="width:380px;">
+    <h3>修改密码</h3>
+    <div class="form-item">
+      <label>新用户名（可选）</label>
+      <input type="text" id="pNewUser" placeholder="留空则不修改">
+    </div>
+    <div class="form-item">
+      <label>原密码</label>
+      <input type="password" id="pOldPass" placeholder="请输入原密码">
+    </div>
+    <div class="form-item">
+      <label>新密码</label>
+      <input type="password" id="pNewPass" placeholder="至少4位">
+    </div>
+    <div class="form-item">
+      <label>确认新密码</label>
+      <input type="password" id="pNewPass2" placeholder="再次输入新密码">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closePwdModal()">取消</button>
+      <button class="btn btn-primary" onclick="doChangePwd()">确认修改</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE = location.origin;
+let TOKEN = localStorage.getItem('admin_token') || '';
+
+function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (TOKEN) opts.headers['Authorization'] = 'Bearer ' + TOKEN;
+  if (body) opts.body = JSON.stringify(body);
+  return fetch(BASE + path, opts).then(r => r.json());
+}
+
+function doLogin() {
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value.trim();
+  if (!username || !password) return alert('请输入账号密码');
+  api('POST', '/api/admin/login', { username, password }).then(res => {
+    if (res.success) {
+      TOKEN = res.data.token;
+      localStorage.setItem('admin_token', TOKEN);
+      showApp();
+    } else {
+      alert(res.message || '登录失败');
+    }
+  });
+}
+
+function doLogout() {
+  TOKEN = '';
+  localStorage.removeItem('admin_token');
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('appPage').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('appPage').style.display = 'block';
+  loadDashboard();
+  loadVersions();
+}
+
+function switchTab(tab) {
+  document.getElementById('pageDashboard').style.display = tab === 'dashboard' ? 'block' : 'none';
+  document.getElementById('pageVersions').style.display = tab === 'versions' ? 'block' : 'none';
+  document.getElementById('tabDashboard').classList.toggle('active', tab === 'dashboard');
+  document.getElementById('tabVersions').classList.toggle('active', tab === 'versions');
+  if (tab === 'dashboard') loadDashboard();
+  if (tab === 'versions') loadVersions();
+}
+
+function loadDashboard() {
+  api('GET', '/api/admin/dashboard').then(res => {
+    if (!res.success) { if (res.code === 401) doLogout(); return; }
+    const d = res.data;
+    document.getElementById('statCards').innerHTML = `
+      <div class="stat-card"><div class="label">👥 总用户数</div><div class="value">${d.userCount}</div><div class="sub">今日新增 <span class="highlight">+${d.todayUsers}</span></div></div>
+      <div class="stat-card"><div class="label">📝 个人记账总数</div><div class="value">${d.txCount}</div><div class="sub">今日新增 <span class="highlight">+${d.todayTx}</span></div></div>
+      <div class="stat-card"><div class="label">📋 项目总数</div><div class="value">${d.projectCount}</div></div>
+      <div class="stat-card"><div class="label">🔨 工作记录总数</div><div class="value">${d.recordCount}</div></div>
+    `;
+    // 柱状图
+    const maxCount = Math.max(...d.dailyChart.map(x => x.count), 1);
+    document.getElementById('barChart').innerHTML = d.dailyChart.map(x => {
+      const h = Math.max((x.count / maxCount) * 150, 4);
+      const label = x.date.slice(5);
+      return `<div class="bar-col"><div class="bar-value">${x.count}</div><div class="bar" style="height:${h}px;"></div><div class="bar-label">${label}</div></div>`;
+    }).join('');
+    // 最近用户
+    const tbody = document.getElementById('recentUserList');
+    if (d.recentUsers.length) {
+      tbody.innerHTML = d.recentUsers.map(u => `<tr>
+        <td>${u.id}</td><td>${u.username}</td><td>${u.nickname || '-'}</td>
+        <td>${u.app_mode || '-'}</td><td>${new Date(u.created_at).toLocaleString('zh-CN')}</td>
+      </tr>`).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">暂无用户</td></tr>';
+    }
+  });
+}
+
+function loadVersions() {
+  api('GET', '/api/admin/versions').then(res => {
+    if (!res.success) { if (res.code === 401) doLogout(); return; }
+    const list = res.data || [];
+    const tbody = document.getElementById('versionList');
+    const empty = document.getElementById('emptyTip');
+    if (!list.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    tbody.innerHTML = list.map(v => `<tr>
+      <td><span class="tag tag-${v.platform}">${v.platform.toUpperCase()}</span></td>
+      <td>${v.version}</td>
+      <td>${v.min_version}</td>
+      <td>${v.force_update ? '<span class="tag tag-force">是</span>' : '否'}</td>
+      <td>${v.package_size} MB</td>
+      <td>${new Date(v.publish_time).toLocaleString('zh-CN')}</td>
+      <td><div class="actions">
+        <span class="edit" onclick="editVersion(${v.id})">编辑</span>
+        <span class="del" onclick="delVersion(${v.id})">删除</span>
+      </div></td>
+    </tr>`).join('');
+  });
+}
+
+let allVersions = [];
+function editVersion(id) {
+  api('GET', '/api/admin/versions').then(res => {
+    if (!res.success) return;
+    const v = res.data.find(x => x.id === id);
+    if (!v) return;
+    document.getElementById('editId').value = v.id;
+    document.getElementById('fPlatform').value = v.platform;
+    document.getElementById('fVersion').value = v.version;
+    document.getElementById('fMinVersion').value = v.min_version;
+    document.getElementById('fSize').value = v.package_size;
+    document.getElementById('fUrl').value = v.download_url;
+    document.getElementById('fLog').value = v.change_log || '';
+    document.getElementById('fForce').checked = v.force_update;
+    document.getElementById('modalTitle').textContent = '编辑版本';
+    document.getElementById('modalMask').classList.add('show');
+  });
+}
+
+function delVersion(id) {
+  if (!confirm('确定删除该版本？')) return;
+  api('DELETE', '/api/admin/versions/' + id).then(res => {
+    if (res.success) loadVersions();
+    else alert(res.message || '删除失败');
+  });
+}
+
+function openModal() {
+  document.getElementById('editId').value = '';
+  document.getElementById('fPlatform').value = 'android';
+  document.getElementById('fVersion').value = '';
+  document.getElementById('fMinVersion').value = '';
+  document.getElementById('fSize').value = '';
+  document.getElementById('fUrl').value = '';
+  document.getElementById('fLog').value = '';
+  document.getElementById('fForce').checked = false;
+  document.getElementById('modalTitle').textContent = '发布新版本';
+  document.getElementById('modalMask').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modalMask').classList.remove('show');
+}
+
+function saveVersion() {
+  const id = document.getElementById('editId').value;
+  const data = {
+    platform: document.getElementById('fPlatform').value,
+    version: document.getElementById('fVersion').value.trim(),
+    min_version: document.getElementById('fMinVersion').value.trim(),
+    package_size: parseFloat(document.getElementById('fSize').value) || 0,
+    download_url: document.getElementById('fUrl').value.trim(),
+    change_log: document.getElementById('fLog').value.trim(),
+    force_update: document.getElementById('fForce').checked,
+    publish_time: new Date().toISOString(),
+  };
+  if (!data.version || !data.min_version || !data.download_url) {
+    return alert('请填写必填项（版本号、最低版本、下载地址）');
+  }
+  const method = id ? 'PUT' : 'POST';
+  const path = id ? '/api/admin/versions/' + id : '/api/admin/versions';
+  api(method, path, data).then(res => {
+    if (res.success) { closeModal(); loadVersions(); }
+    else alert(res.message || '保存失败');
+  });
+}
+
+function openPwdModal() {
+  document.getElementById('pNewUser').value = '';
+  document.getElementById('pOldPass').value = '';
+  document.getElementById('pNewPass').value = '';
+  document.getElementById('pNewPass2').value = '';
+  document.getElementById('pwdModalMask').classList.add('show');
+}
+
+function closePwdModal() {
+  document.getElementById('pwdModalMask').classList.remove('show');
+}
+
+function doChangePwd() {
+  const oldPassword = document.getElementById('pOldPass').value.trim();
+  const newPassword = document.getElementById('pNewPass').value.trim();
+  const newPassword2 = document.getElementById('pNewPass2').value.trim();
+  const newUsername = document.getElementById('pNewUser').value.trim();
+  if (!oldPassword) return alert('请输入原密码');
+  if (!newPassword || newPassword.length < 4) return alert('新密码至少4位');
+  if (newPassword !== newPassword2) return alert('两次密码不一致');
+  api('PUT', '/api/admin/password', { oldPassword, newPassword, newUsername: newUsername || undefined }).then(res => {
+    if (res.success) {
+      alert('修改成功，请重新登录');
+      closePwdModal();
+      doLogout();
+    } else {
+      alert(res.message || '修改失败');
+    }
+  });
+}
+
+// 初始化：有 token 直接进主页
+if (TOKEN) { showApp(); }
+</script>
+</body>
+</html>

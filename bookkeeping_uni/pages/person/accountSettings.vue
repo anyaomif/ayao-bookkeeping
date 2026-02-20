@@ -27,14 +27,14 @@
 			<view class="settings-item">
 				<view class="item-left">
 					<text class="label">金额显示</text>
-					<text class="desc">在首页显示具体金额</text>
+					<text class="desc">显示具体金额</text>
 				</view>
 				<ay-switch v-model="settings.showAmount" active-color="#ff6700"></ay-switch>
 			</view>
 			<view class="settings-item">
 				<view class="item-left">
-					<text class="label">指纹解锁</text>
-					<text class="desc">使用指纹快速进入应用</text>
+					<text class="label">生物认证解锁</text>
+					<text class="desc">使用指纹或面容快速进入应用</text>
 				</view>
 				<ay-switch :model-value="settings.fingerprintLock" active-color="#ff6700" @change="onFingerprintToggle"></ay-switch>
 			</view>
@@ -298,25 +298,36 @@
 	const onFingerprintToggle = (val) => {
 		// #ifdef APP-PLUS
 		if (val) {
-			if (!plus.fingerprint || !plus.fingerprint.isSupport()) {
-				uni.showToast({ title: '设备不支持指纹识别', icon: 'none' });
-				return;
-			}
-			if (!plus.fingerprint.isEnrolledFingerprints()) {
-				uni.showToast({ title: '请先在系统设置中录入指纹', icon: 'none' });
-				return;
-			}
-			plus.fingerprint.authenticate({}, () => {
-				settings.value.fingerprintLock = true;
-			}, (err) => {
-				uni.showToast({ title: '验证失败，未开启', icon: 'none' });
+			uni.checkIsSupportSoterAuthentication({
+				success(res) {
+					const modes = res.supportMode || [];
+					if (!modes.length) {
+						uni.showToast({ title: '设备不支持生物认证', icon: 'none' });
+						return;
+					}
+					const authMode = modes.includes('facial') ? 'facial' : 'fingerPrint';
+					uni.startSoterAuthentication({
+						requestAuthModes: [authMode],
+						challenge: String(Date.now()),
+						authContent: '请验证身份以开启解锁',
+						success() {
+							settings.value.fingerprintLock = true;
+						},
+						fail() {
+							uni.showToast({ title: '验证失败，未开启', icon: 'none' });
+						}
+					});
+				},
+				fail() {
+					uni.showToast({ title: '设备不支持生物认证', icon: 'none' });
+				}
 			});
 		} else {
 			settings.value.fingerprintLock = false;
 		}
 		// #endif
 		// #ifndef APP-PLUS
-		uni.showToast({ title: '仅App端支持指纹解锁', icon: 'none' })
+		uni.showToast({ title: '仅App端支持生物认证解锁', icon: 'none' })
 		// #endif
 	}
 

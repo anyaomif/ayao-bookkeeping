@@ -3,9 +3,9 @@
 		<view class="lock-content">
 			<image class="lock-logo" src="/static/logo.png" mode="aspectFit"></image>
 			<view class="lock-icon">
-				<tn-icon name="fingerprint" size="120" color="#ff6700"></tn-icon>
+				<tn-icon :name="authIcon" size="120" color="#ff6700"></tn-icon>
 			</view>
-			<text class="lock-tip">请验证指纹以解锁</text>
+			<text class="lock-tip">{{ authTip }}</text>
 			<view class="lock-retry" @click="doAuth">
 				<text>重新验证</text>
 			</view>
@@ -23,38 +23,63 @@ setPageBgColor();
 
 onBackPress(() => true);
 
-const doAuth = () => {
-	console.log('[LOCK] doAuth 开始');
-	const fingerprint = plus.fingerprint;
-	if (!fingerprint) {
-		console.log('[LOCK] plus.fingerprint 不存在');
-		uni.showToast({ title: '设备不支持指纹', icon: 'none' });
-		return;
+const authType = ref('fingerPrint');
+const authIcon = ref('fingerprint');
+const authTip = ref('请验证以解锁');
+
+const onSuccess = () => {
+	const app = getApp();
+	if (app) {
+		app.globalData.needAuth = false;
+		app.globalData.isLockPageOpen = false;
 	}
-	fingerprint.authenticate(() => {
-		console.log('[LOCK] 指纹验证成功');
-		const app = getApp();
-		if (app) {
-			app.globalData.needAuth = false;
-			app.globalData.isLockPageOpen = false;
+	setTimeout(() => {
+		const mode = uni.getStorageSync('app_mode');
+		uni.reLaunch({
+			url: mode === 'work' ? '/pages/index/index' : '/pages/personal/dashboard'
+		});
+	}, 100);
+};
+
+const doAuth = () => {
+	uni.startSoterAuthentication({
+		requestAuthModes: [authType.value],
+		challenge: String(Date.now()),
+		authContent: '请验证身份以解锁应用',
+		success() {
+			onSuccess();
+		},
+		fail(err) {
+			console.log('[LOCK] 认证失败:', err.errCode, err.errMsg);
 		}
-		// 清空整个页面栈回首页，避免多层 lock 页面残留
-		setTimeout(() => {
-			const mode = uni.getStorageSync('app_mode');
-			if (mode === 'work') {
-				uni.reLaunch({ url: '/pages/index/index' });
-			} else {
-				uni.reLaunch({ url: '/pages/personal/dashboard' });
-			}
-		}, 100);
-	}, (err) => {
-		console.log('[LOCK] 指纹验证失败:', err.code, err.message);
 	});
 };
 
-onLoad(() => {
-	setTimeout(() => { doAuth(); }, 300);
-});
+const checkSupport = () => {
+	uni.checkIsSupportSoterAuthentication({
+		success(res) {
+			const modes = res.supportMode || [];
+			if (modes.includes('facial')) {
+				authType.value = 'facial';
+				authIcon.value = 'scan';
+				authTip.value = '请验证面容以解锁';
+			} else if (modes.includes('fingerPrint')) {
+				authType.value = 'fingerPrint';
+				authIcon.value = 'fingerprint';
+				authTip.value = '请验证指纹以解锁';
+			} else {
+				authTip.value = '设备不支持生物认证';
+				return;
+			}
+			setTimeout(() => doAuth(), 300);
+		},
+		fail() {
+			authTip.value = '设备不支持生物认证';
+		}
+	});
+};
+
+onLoad(() => { checkSupport(); });
 </script>
 
 <style lang="scss" scoped>
@@ -76,11 +101,6 @@ onLoad(() => {
 	width: 180rpx;
 	height: 180rpx;
 	border-radius: 30rpx;
-}
-.lock-title {
-	font-size: 36rpx;
-	font-weight: 600;
-	color: var(--text-primary);
 }
 .lock-icon { margin: 40rpx 0; }
 .lock-tip {
