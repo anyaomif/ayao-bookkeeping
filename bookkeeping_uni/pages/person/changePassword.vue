@@ -1,20 +1,20 @@
 <template>
-	<view class="change-password-container">
+	<view class="change-password-container" :style="themeVars">
 		<view class="content">
 			<view class="form-section">
 				<view class="form-item">
 					<text class="label">当前密码</text>
-					<input type="password" v-model="formData.oldPassword" placeholder="请输入当前密码" password />
+					<input type="password" v-model="formData.oldPassword" placeholder="请输入当前密码" password :placeholder-style="isDark ? 'color:#636366' : 'color:#ccc'" />
 				</view>
 
 				<view class="form-item">
 					<text class="label">新密码</text>
-					<input type="password" v-model="formData.newPassword" placeholder="请输入新密码" password />
+					<input type="password" v-model="formData.newPassword" placeholder="请输入新密码" password :placeholder-style="isDark ? 'color:#636366' : 'color:#ccc'" />
 				</view>
 
 				<view class="form-item">
 					<text class="label">确认密码</text>
-					<input type="password" v-model="formData.confirmPassword" placeholder="请再次输入新密码" password />
+					<input type="password" v-model="formData.confirmPassword" placeholder="请再次输入新密码" password :placeholder-style="isDark ? 'color:#636366' : 'color:#ccc'" />
 				</view>
 			</view>
 
@@ -40,6 +40,25 @@
 	import {
 		userApi
 	} from '@/api/user.js'
+	import { onLoad, onShow } from '@dcloudio/uni-app'
+	import { isDarkMode, getThemeMode, getThemeVars, setNavBarTheme } from '@/utils/theme'
+
+	const isDark = ref(false)
+	const themeVars = ref({})
+	const refreshTheme = () => {
+		const mode = getThemeMode()
+		isDark.value = mode === 'dark' || (mode === 'system' && isDarkMode())
+		themeVars.value = getThemeVars()
+		setNavBarTheme()
+	}
+
+	onLoad(() => {
+		refreshTheme()
+	})
+
+	onShow(() => {
+		refreshTheme()
+	})
 
 	const formData = ref({
 		oldPassword: '',
@@ -115,17 +134,17 @@
 <style lang="scss">
 	.change-password-container {
 		min-height: 100vh; min-height: 100dvh;
-		background-color: #f8f9fc;
+		background-color: var(--bg-page);
 		position: relative;
 
 		.nav-bar {
 			height: 88rpx;
-			background-color: #fff;
+			background-color: var(--bg-card-solid);
 			display: flex;
 			align-items: center;
 			padding: 0 30rpx;
 			position: relative;
-			box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+			box-shadow: var(--shadow-card);
 
 			.left {
 				position: absolute;
@@ -136,7 +155,7 @@
 
 				.iconfont {
 					font-size: 36rpx;
-					color: #333;
+					color: var(--text-primary);
 				}
 			}
 
@@ -145,7 +164,7 @@
 				text-align: center;
 				font-size: 32rpx;
 				font-weight: 500;
-				color: #333;
+				color: var(--text-primary);
 			}
 		}
 
@@ -153,17 +172,17 @@
 			padding: 30rpx;
 
 			.form-section {
-				background-color: #fff;
+				background-color: var(--bg-card-solid);
 				border-radius: 24rpx;
 				padding: 0 30rpx;
 				margin-bottom: 30rpx;
-				box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.03);
+				box-shadow: var(--shadow-card);
 
 				.form-item {
 					display: flex;
 					align-items: center;
 					padding: 30rpx 0;
-					border-bottom: 2rpx solid #f8f9fc;
+					border-bottom: 2rpx solid var(--divider);
 
 					&:last-child {
 						border-bottom: none;
@@ -172,14 +191,14 @@
 					.label {
 						width: 140rpx;
 						font-size: 30rpx;
-						color: #333;
+						color: var(--text-primary);
 						font-weight: 500;
 					}
 
 					input {
 						flex: 1;
 						font-size: 30rpx;
-						color: #333;
+						color: var(--text-primary);
 					}
 				}
 			}
@@ -190,7 +209,7 @@
 				.tip-item {
 					display: block;
 					font-size: 24rpx;
-					color: #999;
+					color: var(--text-tertiary);
 					line-height: 1.8;
 				}
 			}
@@ -202,8 +221,8 @@
 			left: 0;
 			right: 0;
 			padding: 30rpx;
-			background-color: #fff;
-			box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.03);
+			background-color: var(--bg-card-solid);
+			box-shadow: var(--shadow-card);
 
 			.submit-btn {
 				height: 88rpx;

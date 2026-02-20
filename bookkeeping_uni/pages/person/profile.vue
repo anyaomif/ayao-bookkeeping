@@ -1,5 +1,5 @@
 <template>
-	<view class="profile-container">
+	<view class="profile-container" :style="themeVars">
 		<view class="content">
 			<!-- 头像部分 -->
 			<view class="avatar-section" @click="chooseAvatar">
@@ -8,7 +8,7 @@
 				</view>
 				<view class="right">
 					<image class="avatar" :src="baseUrl + userInfo.avatar || '/static/tx.jpg'" mode="aspectFill"></image>
-					<text class="iconfont icon-right"></text>
+					<tn-icon name="right" size="32" :color="isDark ? '#636366' : '#ccc'"></tn-icon>
 				</view>
 			</view>
 
@@ -16,7 +16,7 @@
 			<view class="info-section">
 				<view class="info-item">
 					<text class="label">昵称</text>
-					<input type="text" v-model="userInfo.nickname" placeholder="请输入昵称" maxlength="12" />
+					<input type="text" v-model="userInfo.nickname" placeholder="请输入昵称" maxlength="12" :placeholder-style="isDark ? 'color:#636366' : 'color:#ccc'" />
 				</view>
 
 				<view class="info-item">
@@ -28,7 +28,7 @@
 			<!-- 修改密码按钮 -->
 			<view class="password-section" @click="goToChangePassword">
 				<text class="label">修改密码</text>
-				<text class="iconfont icon-right"></text>
+				<tn-icon name="right" size="32" :color="isDark ? '#636366' : '#ccc'"></tn-icon>
 			</view>
 		</view>
 
@@ -46,6 +46,7 @@
 		ref,
 		onMounted
 	} from 'vue'
+	import { onShow } from '@dcloudio/uni-app'
 	import {
 		userApi
 	} from '@/api/user.js'
@@ -55,6 +56,16 @@
 	import {
 		baseUrl
 	} from '@/utils/ayao.js'
+	import { isDarkMode, getThemeMode, getThemeVars, setNavBarTheme } from '@/utils/theme'
+
+	const isDark = ref(false)
+	const themeVars = ref({})
+	const refreshTheme = () => {
+		const mode = getThemeMode()
+		isDark.value = mode === 'dark' || (mode === 'system' && isDarkMode())
+		themeVars.value = getThemeVars()
+		setNavBarTheme()
+	}
 
 	const userInfo = ref({
 		avatar: '',
@@ -151,23 +162,28 @@
 
 	onMounted(() => {
 		getUserInfo()
+		refreshTheme()
+	})
+
+	onShow(() => {
+		refreshTheme()
 	})
 </script>
 
 <style lang="scss">
 	.profile-container {
 		min-height: 100vh; min-height: 100dvh;
-		background-color: #f8f9fc;
+		background-color: var(--bg-page);
 		position: relative;
 
 		.nav-bar {
 			height: 88rpx;
-			background-color: #fff;
+			background-color: var(--bg-card-solid);
 			display: flex;
 			align-items: center;
 			padding: 0 30rpx;
 			position: relative;
-			box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+			box-shadow: var(--shadow-card);
 
 			.left {
 				position: absolute;
@@ -178,7 +194,7 @@
 
 				.iconfont {
 					font-size: 36rpx;
-					color: #333;
+					color: var(--text-primary);
 				}
 			}
 
@@ -187,7 +203,7 @@
 				text-align: center;
 				font-size: 32rpx;
 				font-weight: 500;
-				color: #333;
+				color: var(--text-primary);
 			}
 		}
 
@@ -195,19 +211,19 @@
 			padding: 30rpx;
 
 			.avatar-section {
-				background-color: #fff;
+				background-color: var(--bg-card-solid);
 				border-radius: 24rpx;
 				padding: 30rpx;
 				display: flex;
 				justify-content: space-between;
 				align-items: center;
 				margin-bottom: 30rpx;
-				box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.03);
+				box-shadow: var(--shadow-card);
 
 				.left {
 					.label {
 						font-size: 30rpx;
-						color: #333;
+						color: var(--text-primary);
 						font-weight: 500;
 					}
 				}
@@ -221,28 +237,28 @@
 						height: 120rpx;
 						border-radius: 60rpx;
 						margin-right: 20rpx;
-						border: 4rpx solid #f5f5f5;
+						border: 4rpx solid var(--divider);
 					}
 
 					.iconfont {
-						color: #999;
+						color: var(--text-tertiary);
 						font-size: 32rpx;
 					}
 				}
 			}
 
 			.info-section {
-				background-color: #fff;
+				background-color: var(--bg-card-solid);
 				border-radius: 24rpx;
 				padding: 0 30rpx;
 				margin-bottom: 30rpx;
-				box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.03);
+				box-shadow: var(--shadow-card);
 
 				.info-item {
 					display: flex;
 					align-items: center;
 					padding: 30rpx 0;
-					border-bottom: 2rpx solid #f8f9fc;
+					border-bottom: 2rpx solid var(--divider);
 
 					&:last-child {
 						border-bottom: none;
@@ -251,41 +267,41 @@
 					.label {
 						width: 140rpx;
 						font-size: 30rpx;
-						color: #333;
+						color: var(--text-primary);
 						font-weight: 500;
 					}
 
 					input {
 						flex: 1;
 						font-size: 30rpx;
-						color: #333;
+						color: var(--text-primary);
 					}
 
 					.value {
 						flex: 1;
 						font-size: 30rpx;
-						color: #666;
+						color: var(--text-secondary);
 					}
 				}
 			}
 
 			.password-section {
-				background-color: #fff;
+				background-color: var(--bg-card-solid);
 				border-radius: 24rpx;
 				padding: 30rpx;
 				display: flex;
 				justify-content: space-between;
 				align-items: center;
-				box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.03);
+				box-shadow: var(--shadow-card);
 
 				.label {
 					font-size: 30rpx;
-					color: #333;
+					color: var(--text-primary);
 					font-weight: 500;
 				}
 
 				.iconfont {
-					color: #999;
+					color: var(--text-tertiary);
 					font-size: 32rpx;
 				}
 			}
@@ -297,8 +313,8 @@
 			left: 0;
 			right: 0;
 			padding: 30rpx;
-			background-color: #fff;
-			box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.03);
+			background-color: var(--bg-card-solid);
+			box-shadow: var(--shadow-card);
 
 			.submit-btn {
 				height: 88rpx;

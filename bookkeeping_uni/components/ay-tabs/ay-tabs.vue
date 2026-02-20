@@ -1,5 +1,5 @@
 <template>
-	<view class="ay-tabs" :style="{ height: height, backgroundColor: bgColor }">
+	<view class="ay-tabs" :style="{ height: height, backgroundColor: bgColor || undefined }">
 		<scroll-view scroll-x class="ay-tabs__scroll" :scroll-left="scrollLeft" scroll-with-animation>
 			<view class="ay-tabs__wrapper" :style="wrapperStyle">
 				<view v-for="(item, index) in list" :key="index" class="ay-tabs__item"
@@ -46,7 +46,7 @@
 			// 默认文字颜色
 			color: {
 				type: String,
-				default: '#666666'
+				default: ''
 			},
 			// 选中文字颜色
 			activeColor: {
@@ -81,7 +81,7 @@
 			// 底部边框颜色
 			borderColor: {
 				type: String,
-				default: '#f5f5f5'
+				default: ''
 			},
 			// 是否显示底部边框
 			border: {
@@ -106,7 +106,7 @@
 			// 背景颜色
 			bgColor: {
 				type: String,
-				default: '#ffffff'
+				default: ''
 			},
 			// 标签项排列方式
 			justify: {
@@ -127,8 +127,9 @@
 		computed: {
 			// 容器样式
 			wrapperStyle() {
+				const bc = this.borderColor || 'var(--divider, #f5f5f5)'
 				const style = {
-					borderBottom: this.border ? `2rpx solid ${this.borderColor}` : 'none',
+					borderBottom: this.border ? `2rpx solid ${bc}` : 'none',
 					justifyContent: this.justify
 				}
 				if (!this.scrollable) {
@@ -209,8 +210,9 @@
 			},
 			// 标签样式
 			itemStyle(index) {
+				const defaultColor = this.color || 'var(--text-secondary, #666666)'
 				return {
-					color: this.currentValue === index ? this.activeColor : this.color,
+					color: this.currentValue === index ? this.activeColor : defaultColor,
 					fontSize: this.fontSize,
 					fontWeight: this.currentValue === index ? 'bold' : this.fontWeight,
 					flex: this.fixed ? '0 0 ' + this.itemWidth : '0 0 auto',
@@ -234,7 +236,7 @@
 		width: 100%;
 		position: relative;
 		overflow: hidden;
-		background-color: #fff;
+		background-color: var(--bg-card-solid, #fff);
 		border-radius: 12rpx;
 
 		&__scroll {

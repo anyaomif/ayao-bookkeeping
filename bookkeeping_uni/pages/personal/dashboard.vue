@@ -1,16 +1,15 @@
 <template>
-	<view class="dashboard-container">
+	<view class="dashboard-container" :style="themeVars">
 		<!-- 自定义导航栏 -->
-		<NavbarWrapper sticky bgColor="#F8F8F8">
+		<NavbarWrapper sticky :bgColor="navBgColor">
 			<view class="custom-navbar">
 				<view class="nav-left" @click="showMenu = true">
-					<tn-icon name="menu-list" size="44"></tn-icon>
+					<tn-icon name="menu-list" size="44" :color="isDark ? '#f5f5f5' : '#1c1c1e'"></tn-icon>
 				</view>
-				<view class="month-selector" @click="showMonthPicker = true">
-					<text class="month-text">{{ currentYear }}年{{ currentMonth }}月</text>
+				<view class="nav-title">
+					<text class="nav-title-text">俺要记账</text>
 				</view>
-				<view class="action-icons">
-					<tn-icon name="search" size="44"></tn-icon>
+				<view class="nav-right">
 				</view>
 			</view>
 		</NavbarWrapper>
@@ -24,16 +23,24 @@
 			</template>
 			<view class="summary-hero">
 				<view class="hero-content">
-					<text class="hero-label">本月支出 (元)</text>
+					<view class="hero-label-row">
+						<text class="hero-label">本月支出 (元)</text>
+						<view class="eye-toggle" @click="toggleAmountVisible">
+							<tn-icon :name="amountVisible ? 'eye' : 'eye-hide'" size="36" color="#999"></tn-icon>
+						</view>
+					</view>
 					<view class="hero-amount">
-						<text class="amount-symbol">¥</text>
-						<text class="amount-value">{{ formatAmount(summaryData.expense).split('.')[0] }}</text>
-						<text class="amount-decimal">.{{ formatAmount(summaryData.expense).split('.')[1] }}</text>
+						<template v-if="amountVisible">
+							<text class="amount-symbol">¥</text>
+							<text class="amount-value">{{ formatAmount(summaryData.expense).split('.')[0] }}</text>
+							<text class="amount-decimal">.{{ formatAmount(summaryData.expense).split('.')[1] }}</text>
+						</template>
+						<text v-else class="amount-value">***</text>
 					</view>
 					<view class="hero-sub-info">
-						<text>本月收入 ¥{{ formatAmount(summaryData.income) }}</text>
+						<text>本月收入 ¥{{ amountVisible ? formatAmount(summaryData.income) : '***' }}</text>
 						<view class="divider"></view>
-						<text>结余 ¥{{ formatAmount(summaryData.balance) }}</text>
+						<text>结余 ¥{{ amountVisible ? formatAmount(summaryData.balance) : '***' }}</text>
 					</view>
 				</view>
 			</view>
@@ -118,11 +125,11 @@
 				<view class="month-picker-body">
 					<view class="year-row">
 						<view class="year-arrow" @click="pickerYear--">
-							<tn-icon name="left" size="40" color="#333"></tn-icon>
+							<tn-icon name="left" size="40" :color="isDark ? '#f5f5f5' : '#333'"></tn-icon>
 						</view>
 						<text class="year-text">{{ pickerYear }}年</text>
 						<view class="year-arrow" @click="pickerYear++">
-							<tn-icon name="right" size="40" color="#333"></tn-icon>
+							<tn-icon name="right" size="40" :color="isDark ? '#f5f5f5' : '#333'"></tn-icon>
 						</view>
 					</view>
 					<view class="month-grid">
@@ -158,8 +165,19 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { onShow } from '@dcloudio/uni-app';
+import { onShow, onPageScroll } from '@dcloudio/uni-app';
 import { personalTransactionApi } from '@/api/personal_transaction';
+import { isDarkMode, getThemeMode, getThemeVars } from '@/utils/theme';
+
+const isDark = ref(false);
+const isLight = ref(false);
+const themeVars = ref({});
+const refreshTheme = () => {
+	const mode = getThemeMode();
+	isDark.value = mode === 'dark' || (mode === 'system' && isDarkMode());
+	isLight.value = mode === 'light';
+	themeVars.value = getThemeVars();
+};
 
 const currentYear = ref(new Date().getFullYear());
 const currentMonth = ref(new Date().getMonth() + 1);
@@ -171,7 +189,22 @@ const summaryData = ref({ expense: 0, income: 0, balance: 0 });
 const mockTransactions = ref([]);
 const pageLoaded = ref(false);
 
+// 导航栏滚动渐变：顶部透明，下滑后白色
+const navBgColor = ref('transparent');
+onPageScroll((e) => {
+	const t = Math.min(e.scrollTop / 100, 1);
+	const bg = isDark.value ? '28,28,30' : '255,255,255';
+	navBgColor.value = t <= 0 ? 'transparent' : `rgba(${bg},${t})`;
+});
+
 // 左滑提示
+// 金额显隐
+const amountVisible = ref(uni.getStorageSync('amount_visible') !== false);
+const toggleAmountVisible = () => {
+	amountVisible.value = !amountVisible.value;
+	uni.setStorageSync('amount_visible', amountVisible.value);
+};
+
 const showSwipeTip = ref(false);
 const initSwipeTip = () => {
 	const dismissCount = uni.getStorageSync('swipe_tip_dismiss_count') || 0;
@@ -189,9 +222,10 @@ const dismissSwipeTip = () => {
 
 const loadData = async () => {
 	try {
+		const now = new Date();
 		const [statsRes, listRes] = await Promise.all([
-			personalTransactionApi.getStatistics({ year: currentYear.value, month: currentMonth.value }),
-			personalTransactionApi.getList({ year: currentYear.value, month: currentMonth.value, pageSize: 50 }),
+			personalTransactionApi.getStatistics({ year: now.getFullYear(), month: now.getMonth() + 1 }),
+			personalTransactionApi.getRecent(3),
 		]);
 		if (statsRes.success) {
 			summaryData.value = {
@@ -201,7 +235,7 @@ const loadData = async () => {
 			};
 		}
 		if (listRes.success) {
-			mockTransactions.value = listRes.data.list;
+			mockTransactions.value = listRes.data;
 		}
 		pageLoaded.value = true;
 	} catch (e) { pageLoaded.value = true; }
@@ -290,15 +324,18 @@ const goTo = (url) => {
 	uni.navigateTo({ url });
 };
 
-onShow(() => { loadData(); initSwipeTip(); });
+onShow(() => {
+	refreshTheme();
+	loadData(); initSwipeTip();
+});
 </script>
 
 <style lang="scss" scoped>
 .dashboard-container {
-	background-color: #F8F8F8;
+	background: linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid1) 15%, var(--bg-gradient-mid2) 35%, var(--bg-gradient-mid3) 60%, var(--bg-gradient-end) 85%);
 	min-height: 100vh;
 	min-height: 100dvh;
-	padding-bottom: 160rpx;
+	padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
 	box-sizing: border-box;
 }
 
@@ -309,43 +346,71 @@ onShow(() => { loadData(); initSwipeTip(); });
 	width: 100%;
 	height: 88rpx;
 	padding: 0 30rpx;
-	background-color: #F8F8F8;
+	background-color: transparent;
 }
 
-.month-selector {
+.nav-left,
+.nav-right {
+	width: 88rpx;
+	height: 88rpx;
 	display: flex;
 	align-items: center;
-	background-color: #ff6700;
+	justify-content: center;
+}
+
+.nav-title {
+	display: flex;
+	align-items: center;
+	background-color: var(--color-brand);
 	border-radius: 32rpx;
 	padding: 8rpx 28rpx;
 
-	.month-text {
+	.nav-title-text {
 		font-size: 28rpx;
 		font-weight: 500;
 		color: #fff;
 	}
 }
 
-.action-icons {
-	display: flex;
-	gap: 40rpx;
-}
-
 .summary-hero {
 	padding: 20rpx 20rpx;
-	background-color: #F8F8F8;
 
 	.hero-content {
-		background: #fff;
+		background: var(--bg-card);
+		backdrop-filter: blur(20px);
+		-webkit-backdrop-filter: blur(20px);
+		border: 1rpx solid var(--bg-card-border);
 		border-radius: 24rpx;
 		padding: 40rpx;
-		box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+		box-shadow: var(--shadow-card);
 		text-align: center;
+		position: relative;
+		overflow: hidden;
+
+		&::after {
+			content: '';
+			position: absolute;
+			left: 0; right: 0; bottom: 0;
+			height: 45%;
+			background: linear-gradient(180deg, transparent 0%, rgba(255, 160, 80, 0.1) 100%);
+			pointer-events: none;
+		}
+	}
+
+	.hero-label-row {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 12rpx;
 	}
 
 	.hero-label {
 		font-size: 28rpx;
-		color: #666;
+		color: var(--text-secondary);
+	}
+
+	.eye-toggle {
+		padding: 4rpx 8rpx;
 	}
 
 	.hero-amount {
@@ -357,20 +422,20 @@ onShow(() => { loadData(); initSwipeTip(); });
 		.amount-symbol {
 			font-size: 40rpx;
 			font-weight: 500;
-			color: #ff6700;
+			color: var(--color-brand);
 			margin-right: 4rpx;
 		}
 
 		.amount-value {
 			font-size: 72rpx;
 			font-weight: bold;
-			color: #ff6700;
+			color: var(--text-primary);
 		}
 
 		.amount-decimal {
 			font-size: 40rpx;
 			font-weight: bold;
-			color: #ff6700;
+			color: var(--text-primary);
 			margin-left: 4rpx;
 		}
 	}
@@ -381,19 +446,18 @@ onShow(() => { loadData(); initSwipeTip(); });
 		align-items: center;
 		gap: 30rpx;
 		font-size: 26rpx;
-		color: #888;
+		color: var(--text-secondary);
 
 		.divider {
 			width: 1rpx;
 			height: 20rpx;
-			background-color: #e0e0e0;
+			background-color: var(--divider);
 		}
 	}
 }
 
 .add-transaction-btn-wrapper {
 	padding: 0 20rpx 20rpx 20rpx;
-	background-color: #F8F8F8;
 	display: flex;
 	gap: 16rpx;
 }
@@ -405,7 +469,7 @@ onShow(() => { loadData(); initSwipeTip(); });
 	justify-content: center;
 	gap: 16rpx;
 	height: 96rpx;
-	background-color: #ff6700;
+	background-color: var(--color-brand);
 	border-radius: 24rpx;
 	font-size: 32rpx;
 	color: #fff;
@@ -422,12 +486,15 @@ onShow(() => { loadData(); initSwipeTip(); });
 	width: 96rpx;
 	height: 96rpx;
 	border-radius: 24rpx;
-	background: #fff;
+	background: var(--bg-card);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1rpx solid var(--bg-card-border);
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+	box-shadow: var(--shadow-card);
 	flex-shrink: 0;
 	gap: 2rpx;
 	position: relative;
@@ -440,7 +507,7 @@ onShow(() => { loadData(); initSwipeTip(); });
 
 	.ai-label {
 		font-size: 18rpx;
-		color: #ff6700;
+		color: var(--color-brand);
 		line-height: 1;
 	}
 
@@ -448,7 +515,7 @@ onShow(() => { loadData(); initSwipeTip(); });
 		position: absolute;
 		top: 0;
 		right: 0;
-		background: #ff3b30;
+			background: var(--color-danger);
 		color: #fff;
 		font-size: 14rpx;
 		padding: 4rpx 10rpx;
@@ -459,7 +526,6 @@ onShow(() => { loadData(); initSwipeTip(); });
 
 .transactions-section {
 	padding: 0 20rpx;
-	background-color: #F8F8F8;
 }
 
 .date-group:not(:last-child) {
@@ -475,12 +541,12 @@ onShow(() => { loadData(); initSwipeTip(); });
 	.date-label {
 		font-size: 30rpx;
 		font-weight: 500;
-		color: #333;
+		color: var(--text-primary);
 	}
 
 	.summary {
 		font-size: 26rpx;
-		color: #8e8e93;
+		color: var(--text-tertiary);
 	}
 }
 
@@ -488,14 +554,18 @@ onShow(() => { loadData(); initSwipeTip(); });
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	background: #fff2e8;
+	background: var(--bg-card);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1rpx solid var(--bg-card-border);
 	border-radius: 16rpx;
 	padding: 8rpx 20rpx;
 	margin-bottom: 16rpx;
+	box-shadow: var(--shadow-card);
 
 	.tip-text {
 		font-size: 24rpx;
-		color: #ff6700;
+		color: var(--color-brand);
 	}
 
 	.tip-close {
@@ -515,9 +585,12 @@ onShow(() => { loadData(); initSwipeTip(); });
 }
 
 .group-items {
-	background: #fff;
+	background: var(--bg-card);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1rpx solid var(--bg-card-border);
 	border-radius: 24rpx;
-	box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+	box-shadow: var(--shadow-card);
 	overflow: hidden;
 }
 
@@ -526,7 +599,7 @@ onShow(() => { loadData(); initSwipeTip(); });
 	align-items: center;
 	gap: 16rpx;
 	padding-left: 24rpx;
-	background: #fff;
+	background: transparent;
 	height: 100%;
 	padding-right: 10rpx;
 	box-sizing: border-box;
@@ -544,7 +617,7 @@ onShow(() => { loadData(); initSwipeTip(); });
 
 .category-name {
 	font-size: 30rpx;
-	color: #333;
+	color: var(--text-primary);
 	white-space: nowrap;
 }
 
@@ -557,11 +630,11 @@ onShow(() => { loadData(); initSwipeTip(); });
 	justify-content: center;
 
 	&.edit-btn {
-		background-color: #ff6700;
+		background-color: var(--color-brand);
 	}
 
 	&.delete-btn {
-		background-color: #ff3b30;
+		background-color: var(--color-danger);
 	}
 
 	&:active {
@@ -587,7 +660,7 @@ onShow(() => { loadData(); initSwipeTip(); });
 
 		.notes {
 			font-size: 24rpx;
-			color: #8e8e93;
+			color: var(--text-tertiary);
 			text-align: right;
 		}
 	}
@@ -597,11 +670,11 @@ onShow(() => { loadData(); initSwipeTip(); });
 		font-weight: 500;
 
 		&.expense {
-			color: #333;
+			color: var(--text-primary);
 		}
 
 		&.income {
-			color: #34c759;
+			color: var(--color-income);
 		}
 	}
 }
@@ -610,6 +683,7 @@ onShow(() => { loadData(); initSwipeTip(); });
 .popup-content {
 	padding: 12rpx 30rpx 40rpx 30rpx;
 	padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+	background-color: var(--bg-card-solid);
 }
 
 .popup-header {
@@ -621,7 +695,7 @@ onShow(() => { loadData(); initSwipeTip(); });
 .popup-title {
 	font-size: 32rpx;
 	font-weight: 600;
-	color: #1c1c1e;
+	color: var(--text-primary);
 }
 
 .month-picker-body {
@@ -643,17 +717,17 @@ onShow(() => { loadData(); initSwipeTip(); });
 	align-items: center;
 	justify-content: center;
 	border-radius: 50%;
-	background: #f6f6f6;
+	background: var(--bg-input);
 
 	&:active {
-		background: #eee;
+		background: var(--divider);
 	}
 }
 
 .year-text {
 	font-size: 34rpx;
 	font-weight: 600;
-	color: #1c1c1e;
+	color: var(--text-primary);
 }
 
 .month-grid {
@@ -668,9 +742,9 @@ onShow(() => { loadData(); initSwipeTip(); });
 	align-items: center;
 	justify-content: center;
 	border-radius: 16rpx;
-	background: #f6f6f6;
+	background: var(--bg-input);
 	font-size: 30rpx;
-	color: #333;
+	color: var(--text-primary);
 	transition: all 0.2s;
 
 	&:active {
@@ -678,7 +752,7 @@ onShow(() => { loadData(); initSwipeTip(); });
 	}
 
 	&.active {
-		background: #ff6700;
+		background: var(--color-brand);
 		color: #fff;
 		font-weight: 600;
 	}
@@ -695,13 +769,13 @@ onShow(() => { loadData(); initSwipeTip(); });
 	align-items: center;
 	gap: 24rpx;
 	padding: 24rpx 20rpx;
-	background: #f6f6f6;
+	background: var(--bg-input);
 	border-radius: 20rpx;
 	font-size: 30rpx;
-	color: #1c1c1e;
+	color: var(--text-primary);
 
 	&:active {
-		background: #eee;
+		background: var(--divider);
 	}
 }
 </style>

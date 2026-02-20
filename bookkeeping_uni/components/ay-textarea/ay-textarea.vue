@@ -117,11 +117,11 @@
 	.ay-textarea {
 		position: relative;
 		width: 100%;
-		background-color: #fff;
+		background-color: var(--bg-card-solid, #fff);
 		padding-bottom: 20rpx;
 
 		&--border {
-			border: 2rpx solid #dcdfe6;
+			border: 2rpx solid var(--divider, #dcdfe6);
 			border-radius: 8rpx;
 
 			&:focus-within {
@@ -152,14 +152,14 @@
 			min-height: 32rpx;
 			padding: 20rpx;
 			font-size: 28rpx;
-			color: #333;
+			color: var(--text-primary, #333);
 			background-color: transparent;
 			box-sizing: border-box;
 			display: block;
 			line-height: 1.5;
 
 			&::placeholder {
-				color: #999;
+				color: var(--text-placeholder, #999);
 			}
 		}
 
@@ -168,7 +168,7 @@
 			right: 20rpx;
 			bottom: 10rpx;
 			font-size: 24rpx;
-			color: #999;
+			color: var(--text-tertiary, #999);
 		}
 	}
 </style>

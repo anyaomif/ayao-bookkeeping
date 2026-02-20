@@ -23,7 +23,7 @@
 			// 背景颜色
 			bgColor: {
 				type: String,
-				default: '#ffffff'
+				default: ''
 			},
 			// 是否显示阴影
 			shadow: {
@@ -144,11 +144,10 @@
 		width: 100%;
 		box-sizing: border-box;
 		transition: all 0.3s;
-		overflow: hidden;
 
 		// 默认模式
 		&--default {
-			background-color: #ffffff;
+			background-color: var(--bg-card-solid);
 		}
 
 		// 透明模式
@@ -163,7 +162,7 @@
 
 		// 毛玻璃效果
 		&--frosted {
-			background-color: rgba(255, 255, 255, 0.8) !important;
+			background-color: var(--bg-card) !important;
 			backdrop-filter: blur(10px);
 			-webkit-backdrop-filter: blur(10px);
 		}

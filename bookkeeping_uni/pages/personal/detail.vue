@@ -1,22 +1,33 @@
 <template>
-	<view class="detail-container">
+	<view class="detail-container" :style="themeVars">
 		<!-- 自定义导航栏 -->
-		<NavbarWrapper sticky>
-			<view class="custom-navbar">
-				<view class="nav-left" @click="openFilterPopup">
-					<tn-icon name="filter" size="44"></tn-icon>
+		<NavbarWrapper sticky :bgColor="navBgColor">
+			<view class="custom-navbar" v-if="!showSearch">
+				<view class="nav-left" @click="openSearch">
+					<tn-icon name="search" size="44" :color="isDark ? '#f5f5f5' : '#1c1c1e'"></tn-icon>
 				</view>
 				<view class="nav-center" @click="openMonthPicker">
 					<view class="month-selector">
 						<text class="month-text">{{ currentYear }}年{{ currentMonth }}月</text>
 					</view>
 				</view>
-				<view class="nav-right">
+				<view class="nav-right" @click="openFilterPopup">
+					<tn-icon name="filter" size="44" :color="isDark ? '#f5f5f5' : '#1c1c1e'"></tn-icon>
 				</view>
+			</view>
+			<view class="search-navbar" v-else>
+				<view class="search-input-wrap">
+					<tn-icon name="search" size="32" :color="isDark ? '#8e8e93' : '#999'"></tn-icon>
+					<input class="search-input" v-model="keyword" placeholder="搜索备注、分类、金额" confirm-type="search"
+						@confirm="doSearch" :focus="showSearch" />
+					<view class="search-clear" v-if="keyword" @click="keyword = ''; doSearch()">
+						<tn-icon name="close-circle-fill" size="32" :color="isDark ? '#636366' : '#ccc'"></tn-icon>
+					</view>
+				</view>
+				<text class="search-cancel" @click="cancelSearch">取消</text>
 			</view>
 		</NavbarWrapper>
 
-		<!-- 统计信息卡片 -->
 		<!-- 统计信息卡片 -->
 		<ay-skeleton :loading="!pageLoaded">
 			<template #skeleton>
@@ -84,9 +95,11 @@
 					</template>
 				</view>
 			</view>
+			<view class="load-more" v-if="pageLoaded">
+				<text class="load-more-text" v-if="loadingMore">加载中...</text>
+				<text class="load-more-text" v-else-if="noMore">没有更多了</text>
+			</view>
 		</ay-skeleton>
-
-		<!-- 底部 TabBar -->
 		<ay-tabbar :currentTab="1" is-float text-only frosted mode="personal"></ay-tabbar>
 
 		<!-- 筛选弹层 -->
@@ -131,11 +144,11 @@
 				<view class="month-picker-body">
 					<view class="year-row">
 						<view class="year-arrow" @click="pickerYear--">
-							<tn-icon name="left" size="40" color="#333"></tn-icon>
+							<tn-icon name="left" size="40" :color="isDark ? '#f5f5f5' : '#333'"></tn-icon>
 						</view>
 						<text class="year-text">{{ pickerYear }}年</text>
 						<view class="year-arrow" @click="pickerYear++">
-							<tn-icon name="right" size="40" color="#333"></tn-icon>
+							<tn-icon name="right" size="40" :color="isDark ? '#f5f5f5' : '#333'"></tn-icon>
 						</view>
 					</view>
 					<view class="month-grid">
@@ -152,15 +165,33 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { onShow } from '@dcloudio/uni-app';
+import { onShow, onPageScroll, onReachBottom } from '@dcloudio/uni-app';
 import { personalTransactionApi } from '@/api/personal_transaction';
 import { personalAccountApi } from '@/api/personal_account';
+import { isDarkMode, getThemeMode, getThemeVars } from '@/utils/theme';
+
+const isDark = ref(false);
+const isLight = ref(false);
+const themeVars = ref({});
+const refreshTheme = () => {
+	const mode = getThemeMode();
+	isDark.value = mode === 'dark' || (mode === 'system' && isDarkMode());
+	isLight.value = mode === 'light';
+	themeVars.value = getThemeVars();
+};
 
 const currentYear = ref(new Date().getFullYear());
 const currentMonth = ref(new Date().getMonth() + 1);
 const showMonthPicker = ref(false);
 const showFilterPopup = ref(false);
 const pickerYear = ref(new Date().getFullYear());
+
+const navBgColor = ref('transparent');
+onPageScroll((e) => {
+	const t = Math.min(e.scrollTop / 100, 1);
+	const bg = isDark.value ? '28,28,30' : '255,255,255';
+	navBgColor.value = t <= 0 ? 'transparent' : `rgba(${bg},${t})`;
+});
 
 const filterType = ref('');
 const filterAccountId = ref('');
@@ -169,6 +200,30 @@ const accounts = ref([]);
 const mockTransactions = ref([]);
 const pageLoaded = ref(false);
 
+// 搜索相关
+const showSearch = ref(false);
+const keyword = ref('');
+
+const openSearch = () => { showSearch.value = true; };
+const cancelSearch = () => {
+	showSearch.value = false;
+	if (keyword.value) { keyword.value = ''; resetAndLoad(); }
+};
+const doSearch = () => { resetAndLoad(); };
+
+// 分页相关
+const currentPage = ref(1);
+const pageSize = 20;
+const loadingMore = ref(false);
+const noMore = ref(false);
+
+const resetAndLoad = () => {
+	currentPage.value = 1;
+	mockTransactions.value = [];
+	noMore.value = false;
+	loadData();
+};
+
 const loadAccounts = async () => {
 	try {
 		const res = await personalAccountApi.getList();
@@ -176,18 +231,37 @@ const loadAccounts = async () => {
 	} catch (e) { /* 拦截器处理 */ }
 };
 
-const loadData = async () => {
+const loadData = async (append = false) => {
+	if (loadingMore.value) return;
+	if (append) loadingMore.value = true;
 	try {
 		const params = {
-			year: currentYear.value, month: currentMonth.value, pageSize: 100,
+			year: currentYear.value, month: currentMonth.value,
+			page: currentPage.value, pageSize,
 		};
 		if (filterType.value) params.type = filterType.value;
 		if (filterAccountId.value) params.account_id = filterAccountId.value;
+		if (keyword.value) params.keyword = keyword.value;
 		const res = await personalTransactionApi.getList(params);
-		if (res.success) mockTransactions.value = res.data.list;
+		if (res.success) {
+			const list = res.data.list;
+			if (append) {
+				mockTransactions.value = [...mockTransactions.value, ...list];
+			} else {
+				mockTransactions.value = list;
+			}
+			noMore.value = list.length < pageSize;
+		}
 		pageLoaded.value = true;
 	} catch (e) { pageLoaded.value = true; }
+	loadingMore.value = false;
 };
+
+onReachBottom(() => {
+	if (noMore.value || loadingMore.value) return;
+	currentPage.value++;
+	loadData(true);
+});
 
 const openMonthPicker = () => {
 	pickerYear.value = currentYear.value;
@@ -198,7 +272,7 @@ const selectMonth = (m) => {
 	currentYear.value = pickerYear.value;
 	currentMonth.value = m;
 	showMonthPicker.value = false;
-	loadData();
+	resetAndLoad();
 };
 
 const openFilterPopup = () => { showFilterPopup.value = true; };
@@ -210,7 +284,7 @@ const resetFilter = () => {
 
 const applyFilter = () => {
 	showFilterPopup.value = false;
-	loadData();
+	resetAndLoad();
 };
 
 const goToEdit = (id) => {
@@ -227,7 +301,7 @@ const confirmDelete = (id) => {
 				try {
 					await personalTransactionApi.delete(id);
 					uni.showToast({ title: '删除成功', icon: 'success' });
-					loadData();
+					resetAndLoad();
 				} catch (e) { /* 拦截器处理 */ }
 			}
 		}
@@ -282,15 +356,18 @@ const formatDateLabel = (dateString) => {
 	return `${month}月${day}日 ${dayOfWeek}`;
 };
 
-onShow(() => { loadData(); loadAccounts(); });
+onShow(() => {
+	refreshTheme();
+	resetAndLoad(); loadAccounts();
+});
 </script>
 
 <style lang="scss" scoped>
 .detail-container {
-	background-color: #f6f6f6;
+	background: linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid1) 15%, var(--bg-gradient-mid2) 35%, var(--bg-gradient-mid3) 60%, var(--bg-gradient-end) 85%);
 	min-height: 100vh;
 	min-height: 100dvh;
-	padding-bottom: 160rpx;
+	padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
 }
 
 .custom-navbar {
@@ -300,7 +377,7 @@ onShow(() => { loadData(); loadAccounts(); });
 	width: 100%;
 	height: 88rpx;
 	padding: 0 30rpx;
-	background-color: #f6f6f6;
+	background-color: transparent;
 }
 
 .nav-left,
@@ -319,7 +396,7 @@ onShow(() => { loadData(); loadAccounts(); });
 }
 
 .month-selector {
-	background-color: #ff6700;
+	background-color: var(--color-brand);
 	border-radius: 32rpx;
 	padding: 8rpx 28rpx;
 }
@@ -336,14 +413,53 @@ onShow(() => { loadData(); loadAccounts(); });
 	}
 }
 
+.search-navbar {
+	display: flex;
+	align-items: center;
+	height: 88rpx;
+	padding: 0 30rpx;
+	gap: 20rpx;
+}
+
+.search-input-wrap {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	background: var(--bg-input);
+	border-radius: 32rpx;
+	padding: 0 24rpx;
+	height: 64rpx;
+	gap: 12rpx;
+}
+
+.search-input {
+	flex: 1;
+	font-size: 28rpx;
+	color: var(--text-primary);
+	height: 64rpx;
+}
+
+.search-clear {
+	padding: 4rpx;
+}
+
+.search-cancel {
+	font-size: 28rpx;
+	color: var(--color-brand);
+	white-space: nowrap;
+}
+
 .stats-card {
 	display: flex;
 	align-items: center;
-	background: #fff;
+	background: var(--bg-card);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1rpx solid var(--bg-card-border);
 	margin: 20rpx 30rpx;
 	border-radius: 24rpx;
 	padding: 30rpx 0;
-	box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.05);
+	box-shadow: var(--shadow-card);
 }
 
 .stats-item {
@@ -356,7 +472,7 @@ onShow(() => { loadData(); loadAccounts(); });
 
 .stats-label {
 	font-size: 26rpx;
-	color: #8e8e93;
+	color: var(--text-tertiary);
 }
 
 .stats-value {
@@ -364,23 +480,22 @@ onShow(() => { loadData(); loadAccounts(); });
 	font-weight: 600;
 
 	&.expense {
-		color: #333;
+		color: var(--text-primary);
 	}
 
 	&.income {
-		color: #34c759;
+		color: var(--color-income);
 	}
 }
 
 .stats-divider {
 	width: 1rpx;
 	height: 60rpx;
-	background-color: #f0f0f0;
+	background-color: var(--bg-card-border);
 }
 
 .transactions-section {
 	padding: 0 30rpx;
-	background-color: #f6f6f6;
 }
 
 .date-group:not(:last-child) {
@@ -396,19 +511,22 @@ onShow(() => { loadData(); loadAccounts(); });
 	.date-label {
 		font-size: 28rpx;
 		font-weight: 500;
-		color: #1c1c1e;
+		color: var(--text-primary);
 	}
 
 	.summary {
 		font-size: 24rpx;
-		color: #8e8e93;
+		color: var(--text-tertiary);
 	}
 }
 
 .group-items {
-	background: #fff;
+	background: var(--bg-card);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1rpx solid var(--bg-card-border);
 	border-radius: 24rpx;
-	box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.05);
+	box-shadow: var(--shadow-card);
 	overflow: hidden;
 }
 
@@ -417,7 +535,7 @@ onShow(() => { loadData(); loadAccounts(); });
 	align-items: center;
 	gap: 16rpx;
 	padding-left: 24rpx;
-	background: #fff;
+	background: transparent;
 	padding-right: 10rpx;
 	box-sizing: border-box;
 }
@@ -434,7 +552,7 @@ onShow(() => { loadData(); loadAccounts(); });
 
 .category-name {
 	font-size: 30rpx;
-	color: #1c1c1e;
+	color: var(--text-primary);
 	white-space: nowrap;
 }
 
@@ -447,11 +565,11 @@ onShow(() => { loadData(); loadAccounts(); });
 	justify-content: center;
 
 	&.edit-btn {
-		background-color: #ff6700;
+		background-color: var(--color-brand);
 	}
 
 	&.delete-btn {
-		background-color: #ff3b30;
+		background-color: var(--color-danger);
 	}
 
 	&:active {
@@ -477,7 +595,7 @@ onShow(() => { loadData(); loadAccounts(); });
 
 		.notes {
 			font-size: 24rpx;
-			color: #8e8e93;
+			color: var(--text-tertiary);
 			text-align: right;
 		}
 	}
@@ -488,11 +606,11 @@ onShow(() => { loadData(); loadAccounts(); });
 		letter-spacing: -1rpx;
 
 		&.expense {
-			color: #1c1c1e;
+			color: var(--text-primary);
 		}
 
 		&.income {
-			color: #34c759;
+			color: var(--color-income);
 		}
 	}
 }
@@ -503,7 +621,7 @@ onShow(() => { loadData(); loadAccounts(); });
 	padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
 	border-top-left-radius: 24rpx;
 	border-top-right-radius: 24rpx;
-	background-color: #fff;
+	background-color: var(--bg-card-solid);
 }
 
 .popup-header {
@@ -516,7 +634,7 @@ onShow(() => { loadData(); loadAccounts(); });
 .popup-title {
 	font-size: 32rpx;
 	font-weight: 600;
-	color: #1c1c1e;
+	color: var(--text-primary);
 }
 
 .filter-section {
@@ -526,7 +644,7 @@ onShow(() => { loadData(); loadAccounts(); });
 .filter-label {
 	font-size: 28rpx;
 	font-weight: 500;
-	color: #8e8e93;
+	color: var(--text-tertiary);
 	margin-bottom: 20rpx;
 	display: block;
 }
@@ -539,14 +657,14 @@ onShow(() => { loadData(); loadAccounts(); });
 
 .filter-tag {
 	padding: 16rpx 32rpx;
-	background-color: #f6f6f6;
+	background-color: var(--bg-input);
 	border-radius: 999rpx;
 	font-size: 28rpx;
-	color: #1c1c1e;
+	color: var(--text-primary);
 	transition: all 0.2s ease;
 
 	&.active {
-		background-color: #ff6700;
+		background-color: var(--color-brand);
 		color: #fff;
 		font-weight: 500;
 	}
@@ -574,12 +692,12 @@ onShow(() => { loadData(); loadAccounts(); });
 	}
 
 	&.reset {
-		background-color: #f6f6f6;
-		color: #1c1c1e;
+		background-color: var(--bg-input);
+		color: var(--text-primary);
 	}
 
 	&.confirm {
-		background-color: #ff6700;
+		background-color: var(--color-brand);
 		color: #fff;
 	}
 }
@@ -603,17 +721,17 @@ onShow(() => { loadData(); loadAccounts(); });
 	align-items: center;
 	justify-content: center;
 	border-radius: 50%;
-	background: #f6f6f6;
+	background: var(--bg-input);
 
 	&:active {
-		background: #eee;
+		background: var(--divider);
 	}
 }
 
 .year-text {
 	font-size: 34rpx;
 	font-weight: 600;
-	color: #1c1c1e;
+	color: var(--text-primary);
 }
 
 .month-grid {
@@ -628,9 +746,9 @@ onShow(() => { loadData(); loadAccounts(); });
 	align-items: center;
 	justify-content: center;
 	border-radius: 16rpx;
-	background: #f6f6f6;
+	background: var(--bg-input);
 	font-size: 30rpx;
-	color: #333;
+	color: var(--text-primary);
 	transition: all 0.2s;
 
 	&:active {
@@ -638,9 +756,20 @@ onShow(() => { loadData(); loadAccounts(); });
 	}
 
 	&.active {
-		background: #ff6700;
+		background: var(--color-brand);
 		color: #fff;
 		font-weight: 600;
 	}
+}
+
+.load-more {
+	display: flex;
+	justify-content: center;
+	padding: 30rpx 0 20rpx;
+}
+
+.load-more-text {
+	font-size: 26rpx;
+	color: var(--text-placeholder);
 }
 </style>

@@ -1,15 +1,15 @@
 <template>
-	<view class="categories-container">
+	<view class="categories-container" :style="themeVars">
 		<NavbarWrapper sticky>
 			<view class="custom-navbar">
 				<view class="nav-left" @click="goBack">
-					<tn-icon name="left" size="44" color="#1c1c1e"></tn-icon>
+					<tn-icon name="left" size="44" :color="isDark ? '#f5f5f5' : '#1c1c1e'"></tn-icon>
 				</view>
 				<view class="nav-center">
 					<text class="nav-title">分类管理</text>
 				</view>
 				<view class="nav-right" @click="confirmReset">
-					<tn-icon name="refresh" size="40" color="#1c1c1e"></tn-icon>
+					<tn-icon name="refresh" size="40" :color="isDark ? '#f5f5f5' : '#1c1c1e'"></tn-icon>
 				</view>
 			</view>
 		</NavbarWrapper>
@@ -32,7 +32,7 @@
 		<!-- 主分类宫格 -->
 		<view class="section-card">
 			<view class="section-tip">
-				<tn-icon name="info" size="28" color="#c7c7cc"></tn-icon>
+				<tn-icon name="info" size="28" :color="isDark ? '#636366' : '#c7c7cc'"></tn-icon>
 				<text>长按分类可编辑或删除</text>
 			</view>
 			<view class="grid-wrap">
@@ -47,7 +47,7 @@
 				<!-- 添加一级分类 -->
 				<view class="grid-item add-item" @click="openAddMain">
 					<view class="grid-icon add-icon">
-						<tn-icon name="add" size="44" color="#ff6700"></tn-icon>
+						<tn-icon name="add" size="44" :color="isDark ? '#ff8533' : '#ff6700'"></tn-icon>
 					</view>
 					<text class="grid-name add-text">添加</text>
 				</view>
@@ -69,7 +69,7 @@
 				</view>
 				<view class="grid-item add-item" @click="openAddSub">
 					<view class="grid-icon small add-icon">
-						<tn-icon name="add" size="36" color="#ff6700"></tn-icon>
+						<tn-icon name="add" size="36" :color="isDark ? '#ff8533' : '#ff6700'"></tn-icon>
 					</view>
 					<text class="grid-name add-text">添加</text>
 				</view>
@@ -138,6 +138,11 @@
 import { ref, computed } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { personalCategoryApi } from '@/api/personal_category';
+import { isDarkMode, getThemeVars } from '@/utils/theme';
+
+const isDark = ref(false);
+const themeVars = ref({});
+const refreshTheme = () => { isDark.value = isDarkMode(); themeVars.value = getThemeVars(); };
 
 const currentType = ref('expense');
 const typeIndex = computed(() => ({ expense: 0, income: 1, transfer: 2 }[currentType.value] || 0));
@@ -262,27 +267,27 @@ const confirmReset = () => {
 };
 
 const goBack = () => uni.navigateBack();
-onShow(() => { loadCategories(); });
+onShow(() => { refreshTheme(); loadCategories(); });
 </script>
 
 <style lang="scss" scoped>
-.categories-container { background-color: #f6f6f6; min-height: 100vh; min-height: 100dvh; }
+.categories-container { background-color: var(--bg-page, #f6f6f6); min-height: 100vh; min-height: 100dvh; }
 
 .custom-navbar {
 	display: flex; align-items: center; justify-content: space-between;
-	width: 100%; height: 88rpx; padding: 0 10rpx; background-color: #f6f6f6;
+	width: 100%; height: 88rpx; padding: 0 10rpx; background-color: var(--bg-page, #f6f6f6);
 	.nav-left, .nav-right {
 		width: 88rpx; height: 88rpx;
 		display: flex; align-items: center; justify-content: center;
 	}
 }
 .nav-center { flex: 1; display: flex; justify-content: center; }
-.nav-title { font-size: 34rpx; font-weight: 600; color: #1c1c1e; }
+.nav-title { font-size: 34rpx; font-weight: 600; color: var(--text-primary, #1c1c1e); }
 
 .type-selector { padding: 10rpx 30rpx 30rpx 30rpx; }
 .segmented {
-	display: flex; position: relative; background: #fff; padding: 0 8rpx;
-	border-radius: 24rpx; box-shadow: 0 4rpx 24rpx rgba(0,0,0,0.06);
+	display: flex; position: relative; background: var(--bg-card-solid, #fff); padding: 0 8rpx;
+	border-radius: 24rpx; box-shadow: var(--shadow-card, 0 4rpx 24rpx rgba(0,0,0,0.06));
 }
 .seg-slider {
 	position: absolute; top: 8rpx; left: 8rpx;
@@ -294,31 +299,31 @@ onShow(() => { loadCategories(); });
 .seg-item {
 	flex: 1; text-align: center; padding: 22rpx 24rpx;
 	border-radius: 18rpx; position: relative; z-index: 1;
-	text { font-size: 30rpx; font-weight: 500; color: #8e8e93; transition: color 0.3s ease; }
+	text { font-size: 30rpx; font-weight: 500; color: var(--text-tertiary, #8e8e93); transition: color 0.3s ease; }
 	&.active text { color: #fff; font-weight: 600; }
 }
 
 .section-card {
-	margin: 0 30rpx 20rpx; background: #fff; border-radius: 24rpx;
-	box-shadow: 0 4rpx 24rpx rgba(0,0,0,0.06); padding: 24rpx 16rpx;
+	margin: 0 30rpx 20rpx; background: var(--bg-card-solid, #fff); border-radius: 24rpx;
+	box-shadow: var(--shadow-card, 0 4rpx 24rpx rgba(0,0,0,0.06)); padding: 24rpx 16rpx;
 }
 .section-tip {
 	display: flex; align-items: center; gap: 8rpx;
 	padding: 0 12rpx 20rpx;
-	text { font-size: 24rpx; color: #c7c7cc; }
+	text { font-size: 24rpx; color: var(--text-placeholder, #c7c7cc); }
 }
-.sub-section { background: #fafafa; }
+.sub-section { background: var(--bg-input, #fafafa); }
 .sub-header {
-	padding: 0 12rpx 20rpx; border-bottom: 1rpx solid #f0f0f0; margin-bottom: 20rpx;
+	padding: 0 12rpx 20rpx; border-bottom: 1rpx solid var(--divider, #f0f0f0); margin-bottom: 20rpx;
 }
-.sub-title { font-size: 28rpx; font-weight: 500; color: #8e8e93; }
+.sub-title { font-size: 28rpx; font-weight: 500; color: var(--text-tertiary, #8e8e93); }
 
 .grid-wrap { display: flex; flex-wrap: wrap; }
 .grid-item {
 	width: 20%; display: flex; flex-direction: column; align-items: center;
 	padding: 16rpx 0; border-radius: 16rpx; transition: background 0.2s;
 	&.selected { background: rgba(255,103,0,0.08); }
-	&:active { background: #f0f0f0; }
+	&:active { background: var(--bg-input, #f0f0f0); }
 }
 .grid-icon {
 	width: 88rpx; height: 88rpx; border-radius: 50%;
@@ -326,12 +331,12 @@ onShow(() => { loadCategories(); });
 	&.small { width: 72rpx; height: 72rpx; }
 }
 .grid-name {
-	font-size: 24rpx; color: #1c1c1e; margin-top: 10rpx;
+	font-size: 24rpx; color: var(--text-primary, #1c1c1e); margin-top: 10rpx;
 	max-width: 120rpx; text-align: center;
 	overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.add-icon { background: #f0f0f0; }
-.add-text { color: #ff6700; }
+.add-icon { background: var(--bg-input, #f0f0f0); }
+.add-text { color: var(--color-brand, #ff6700); }
 
 .action-menu {
 	padding: 20rpx 30rpx; padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
@@ -339,14 +344,14 @@ onShow(() => { loadCategories(); });
 .action-menu-item {
 	display: flex; align-items: center; gap: 24rpx;
 	padding: 28rpx 20rpx; border-radius: 16rpx;
-	font-size: 30rpx; color: #1c1c1e;
-	&:active { background: #f0f0f0; }
+	font-size: 30rpx; color: var(--text-primary, #1c1c1e);
+	&:active { background: var(--bg-input, #f0f0f0); }
 	&.danger { color: #ff3b30; }
 }
 .action-menu-cancel {
 	margin-top: 16rpx; padding: 28rpx; text-align: center;
-	border-radius: 16rpx; background: #f6f6f6; font-size: 30rpx; color: #8e8e93;
-	&:active { background: #eee; }
+	border-radius: 16rpx; background: var(--bg-input, #f6f6f6); font-size: 30rpx; color: var(--text-tertiary, #8e8e93);
+	&:active { background: var(--divider, #eee); }
 }
 
 .popup-content {
@@ -354,10 +359,10 @@ onShow(() => { loadCategories(); });
 	padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
 }
 .popup-header { display: flex; justify-content: center; padding: 0 0 32rpx 0; }
-.popup-title { font-size: 32rpx; font-weight: 600; color: #1c1c1e; }
+.popup-title { font-size: 32rpx; font-weight: 600; color: var(--text-primary, #1c1c1e); }
 .form-section { display: flex; flex-direction: column; gap: 30rpx; }
 .form-item { display: flex; flex-direction: column; gap: 16rpx; }
-.form-label { font-size: 28rpx; font-weight: 500; color: #1c1c1e; }
+.form-label { font-size: 28rpx; font-weight: 500; color: var(--text-primary, #1c1c1e); }
 .icon-scroll { max-height: 320rpx; }
 .icon-selector {
 	display: grid; grid-template-columns: repeat(6, 1fr); gap: 16rpx; padding: 8rpx;
@@ -366,7 +371,7 @@ onShow(() => { loadCategories(); });
 .icon-option {
 	height: 88rpx; border-radius: 20rpx;
 	display: flex; align-items: center; justify-content: center;
-	background-color: #f6f6f6; transition: all 0.2s ease;
+	background-color: var(--bg-input, #f6f6f6); transition: all 0.2s ease;
 	&.active { background-color: #ff6700; color: #fff; transform: scale(1.08); }
 }
 .color-option {

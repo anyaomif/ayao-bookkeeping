@@ -23,6 +23,12 @@ module.exports = app => {
     underscored: true,
   });
 
+  PersonalTransaction.associate = function() {
+    app.model.PersonalTransaction.belongsTo(app.model.PersonalCategory, {
+      foreignKey: 'category_id', as: 'categoryInfo',
+    });
+  };
+
   PersonalTransaction.sync();
 
   return PersonalTransaction;

@@ -1,9 +1,8 @@
 <template>
-	<view class="container">
+	<view class="container" :style="themeVars">
 		<ay-tabbar :currentTab="0" is-float text-only frosted></ay-tabbar>
-		<!-- <view class="app-header-box"></view> -->
 		<NavbarWrapper sticky>
-			<ay-title title="俺要记账" class="ay-title">
+			<ay-title title="俺要记账" class="ay-title" :color="isDark ? '#f5f5f5' : '#333'">
 				<template #right>
 					<ProjectSelector v-model="currentProject" :projectList="projectList" @change="selectProject" />
 				</template>
@@ -40,7 +39,7 @@
 		</view>
 
 		<!-- 本月统计卡片 -->
-		<ay-title title="本月统计"></ay-title>
+		<ay-title title="本月统计" :color="isDark ? '#f5f5f5' : '#333'"></ay-title>
 		<view class="stats-card">
 			<!-- 点工统计 -->
 			<view class="stats-section">
@@ -92,7 +91,7 @@
 			<view class="record-detail-popup">
 				<view class="popup-header">
 					<text class="title">记工详情</text>
-					<tn-icon name="close" @click="showDetailPopup = false" size="40" color="#666"></tn-icon>
+					<tn-icon name="close" @click="showDetailPopup = false" size="40" :color="isDark ? '#8e8e93' : '#666'"></tn-icon>
 				</view>
 
 				<scroll-view scroll-y class="popup-content">
@@ -190,6 +189,15 @@
 	import {
 		projectApi
 	} from '@/api/project.js'
+	import { isDarkMode, getThemeMode, getThemeVars } from '@/utils/theme'
+
+	const isDark = ref(false)
+	const themeVars = ref({})
+	const refreshTheme = () => {
+		const mode = getThemeMode()
+		isDark.value = mode === 'dark' || (mode === 'system' && isDarkMode())
+		themeVars.value = getThemeVars()
+	}
 
 	const isLoading = ref(true)
 	const selectDate = ref('')
@@ -485,6 +493,7 @@
 	});
 
 	onShow(() => {
+		refreshTheme()
 		if (!isLoading.value) {
 			getRecordList()
 			getProjectList()
@@ -504,21 +513,12 @@
 <style lang="scss" scoped>
 	.container {
 		padding-bottom: 140rpx;
-
-		.app-header-box {
-			width: 100vw;
-			height: var(--status-bar-height);
-			background: #fff;
-			position: fixed;
-			top: 0;
-			left: 0;
-			z-index: 1;
-		}
+		background-color: var(--bg-page, #f5f5f5);
+		min-height: 100vh; min-height: 100dvh;
 
 		.ay-title {
 			position: sticky;
 			top: var(--status-bar-height);
-			background: #fff;
 			z-index: 1;
 		}
 
@@ -547,8 +547,8 @@
 			margin: 20rpx;
 			border-radius: 24rpx;
 			overflow: hidden;
-			background: linear-gradient(135deg, #fff 0%, #f8f9fc 100%);
-			box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+			background: var(--bg-card-solid);
+			box-shadow: var(--shadow-card);
 
 			.stats-section {
 				background: transparent;
@@ -556,7 +556,7 @@
 				position: relative;
 
 				&:not(:last-child) {
-					border-bottom: 2rpx solid rgba(0, 0, 0, 0.05);
+					border-bottom: 2rpx solid var(--divider);
 				}
 
 				.section-header {
@@ -568,7 +568,7 @@
 					.title {
 						font-size: 32rpx;
 						font-weight: bold;
-						color: #333;
+						color: var(--text-primary);
 						position: relative;
 						padding-left: 24rpx;
 
@@ -600,29 +600,21 @@
 					gap: 20rpx;
 
 					.stats-item {
-						background: #fff;
+						background: var(--bg-input);
 						padding: 24rpx;
 						border-radius: 16rpx;
 						box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.03);
-						transition: all 0.3s;
-
-						&:hover {
-							transform: translateY(-2rpx);
-							box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.06);
-						}
 
 						.label {
 							font-size: 26rpx;
-							color: #666;
+							color: var(--text-secondary);
 							display: block;
 							margin-bottom: 12rpx;
 						}
 
 						.value {
 							font-size: 32rpx;
-							background: linear-gradient(135deg, #333 0%, #666 100%);
-							-webkit-background-clip: text;
-							color: transparent;
+							color: var(--text-primary);
 							font-weight: bold;
 						}
 					}
@@ -633,7 +625,7 @@
 		.loading {
 			text-align: center;
 			padding: 30rpx;
-			color: #999;
+			color: var(--text-tertiary);
 			font-size: 28rpx;
 		}
 	}
@@ -648,7 +640,7 @@
 	.record-detail-popup {
 		width: 80vw;
 		max-height: 80vh;
-		background-color: #fff;
+		background-color: var(--bg-card-solid);
 		border-radius: 24rpx;
 		overflow: hidden;
 
@@ -657,12 +649,12 @@
 			justify-content: space-between;
 			align-items: center;
 			padding: 30rpx;
-			border-bottom: 2rpx solid #f5f5f5;
+			border-bottom: 2rpx solid var(--divider);
 
 			.title {
 				font-size: 32rpx;
 				font-weight: bold;
-				color: #333;
+				color: var(--text-primary);
 			}
 		}
 
@@ -672,7 +664,7 @@
 		}
 
 		.detail-section {
-			background-color: #f8f9fc;
+			background-color: var(--bg-input);
 			border-radius: 16rpx;
 			padding: 24rpx;
 			margin-bottom: 24rpx;
@@ -684,7 +676,7 @@
 				margin-bottom: 20rpx;
 				font-size: 28rpx;
 				font-weight: bold;
-				color: #333;
+				color: var(--text-primary);
 			}
 
 			.info-item {
@@ -699,19 +691,19 @@
 
 				.label {
 					font-size: 26rpx;
-					color: #666;
+					color: var(--text-secondary);
 				}
 
 				.value {
 					font-size: 26rpx;
-					color: #333;
+					color: var(--text-primary);
 					font-weight: 500;
 				}
 			}
 
 			.remark-content {
 				font-size: 26rpx;
-				color: #666;
+				color: var(--text-secondary);
 				line-height: 1.6;
 				margin-bottom: 16rpx;
 			}

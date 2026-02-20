@@ -1,9 +1,9 @@
 <template>
-	<view class="stats-container">
+	<view class="stats-container" :style="themeVars">
 		<ay-tabbar :currentTab="1" is-float text-only frosted></ay-tabbar>
 		<!-- <view class="app-header-box"></view> -->
 		<NavbarWrapper sticky>
-			<ay-title title="俺要记账" class="ay-title">
+			<ay-title title="俺要记账" class="ay-title" :color="isDark ? '#f5f5f5' : '#333'">
 				<template #right>
 					<ProjectSelector v-model="currentProject" :projectList="projectList" @change="selectProject" />
 				</template>
@@ -42,11 +42,10 @@
 
 		<!-- 收入构成 -->
 		<view class="chart-section">
-			<ay-title title="收入构成" bold padding="0" class="title"></ay-title>
-			<view class="composition-chart" style="height: 300rpx; position: relative;">
-				<qiun-data-charts type="pie" canvas2d canvasId="pieChart" :opts="pieOpts" :chartData="pieData"
-					@complete="onChartComplete('pie')" />
-				<view v-if="!hasIncomeData" class="empty-chart-overlay">暂无收入数据</view>
+			<ay-title title="收入构成" bold padding="0" class="title" :color="isDark ? '#f5f5f5' : '#333'"></ay-title>
+			<view class="composition-chart" style="position: relative;">
+				<ay-ring-chart v-if="hasIncomeData" :series="pieSeriesData" :total="totalIncome" :size="300" :ringWidth="50" />
+				<view v-else class="empty-chart-overlay">暂无收入数据</view>
 			</view>
 			<view class="income-info">
 				<view class="income-item" @tap="toggleAmountDisplay">
@@ -66,22 +65,21 @@
 
 		<!-- 收入趋势 -->
 		<view class="chart-section">
-			<ay-title title="收入趋势" bold padding="0" class="title"></ay-title>
-			<view class="trend-chart" style="height: 440rpx; position: relative;">
-				<qiun-data-charts type="area" canvas2d canvasId="areaChart" :opts="areaOpts" :chartData="areaData"
-					:ontouch="true" :disableScroll="true"
-					@complete="onChartComplete('area')" />
-				<view v-if="!hasDailyData" class="empty-chart-overlay">暂无趋势数据</view>
+			<ay-title title="收入趋势" bold padding="0" class="title" :color="isDark ? '#f5f5f5' : '#333'"></ay-title>
+			<view class="trend-chart" style="position: relative;">
+				<ay-area-chart v-if="hasDailyData" :categories="trendCategories" :series="trendSeries"
+					:height="400" :stepWidth="100" />
+				<view v-else class="empty-chart-overlay" style="height: 400rpx;">暂无趋势数据</view>
 			</view>
 		</view>
 
 		<!-- 工作状态分析 -->
 		<view class="chart-section">
-			<ay-title title="工作状态分析" bold padding="0" class="title"></ay-title>
-			<view class="status-chart" style="height: 400rpx; position: relative;">
-				<qiun-data-charts type="rose" canvas2d canvasId="roseChart" :opts="roseOpts" :chartData="roseData"
-					@complete="onChartComplete('rose')" />
-				<view v-if="!hasWorkStatusData" class="empty-chart-overlay">暂无工作数据</view>
+			<ay-title title="工作状态分析" bold padding="0" class="title" :color="isDark ? '#f5f5f5' : '#333'"></ay-title>
+			<view class="status-chart" style="position: relative;">
+				<ay-pie-chart v-if="hasWorkStatusData" :series="workStatusData" :size="320"
+					:colors="['#ff6700', '#52c41a', '#1890ff']" />
+				<view v-else class="empty-chart-overlay" style="height: 320rpx;">暂无工作数据</view>
 			</view>
 		</view>
 
@@ -145,6 +143,15 @@
 	import {
 		statisticsApi
 	} from '@/api/statistics'
+	import { isDarkMode, getThemeMode, getThemeVars } from '@/utils/theme'
+
+	const isDark = ref(false)
+	const themeVars = ref({})
+	const refreshTheme = () => {
+		const mode = getThemeMode()
+		isDark.value = mode === 'dark' || (mode === 'system' && isDarkMode())
+		themeVars.value = getThemeVars()
+	}
 
 	const isLoading = ref(true)
 	// 项目相关
@@ -191,174 +198,21 @@
 	const monthlyPointIncome = ref(0)
 	const monthlyContractIncome = ref(0)
 
-	// 饼图配置
-	const pieOpts = ref({
-		color: ['#ff6700', '#1890ff'],
-		padding: [5, 5, 5, 5],
-		legend: {
-			show: false
-		},
-		series: [{
-			center: ['50%', '50%'],
-			radius: ['50%', '65%'],
-			labelLine: {
-				show: true,
-				length: 10,
-				length2: 8,
-				lineStyle: {
-					color: '#999',
-					width: 1
-				}
-			},
-			label: {
-				show: true,
-				formatter: (val) => {
-					return `${val.name}\n${val.percent}%`
-				},
-				color: '#333',
-				fontSize: 12,
-				lineHeight: 16,
-				align: 'center',
-				distanceToLabelLine: 5
-			},
-			itemStyle: {
-				borderWidth: 2,
-				borderColor: '#fff'
-			}
-		}]
-	})
-
-	// 饼图数据
-	const pieData = ref({
-		series: [{
-			data: []
-		}]
-	})
-
-	// 修改面积图配置
-	const areaOpts = ref({
-		color: ['#ff6700', '#1890ff', '#52c41a'],
-		padding: [15, 15, 0, 5],
-		dataLabel: false,
-		dataPointShape: false,
-		enableScroll: true,
-		legend: {
-			show: true,
-			position: 'bottom',
-			float: 'center',
-			itemGap: 15,
-			fontSize: 11,
-			padding: 10,
-			margin: 5
-		},
-		xAxis: {
-			itemCount: 7,
-			scrollShow: true,
-			axisLine: true,
-			axisLineColor: '#eee',
-			gridType: 'dash',
-			gridColor: '#f5f5f5',
-			rotateLabel: true,
-			marginTop: 10,
-			fontSize: 11,
-			fontColor: '#666'
-		},
-		yAxis: {
-			gridType: 'dash',
-			gridColor: '#f5f5f5',
-			splitNumber: 4,
-			min: 0,
-			fontSize: 11,
-			fontColor: '#666'
-		},
-		extra: {
-			area: {
-				type: 'curve',
-				opacity: 0.15,
-				gradient: true,
-				addLine: true,
-				lineWidth: 2,
-				activeType: 'hollow'
-			},
-			tooltip: {
-				showBox: true,
-				boxPadding: 5,
-				boxBorderRadius: 5,
-				boxBgColor: '#fff',
-				boxBorderColor: '#eee',
-				fontSize: 12,
-				legendShape: 'circle',
-				customBox: null,
-				splitLine: true,
-				formatter: (item) => {
-					return item.name + ': ¥' + item.data
-				}
-			}
-		}
-	})
-
-	// 面积图数据
-	const areaData = ref({
-		categories: [],
-		series: [{
-			name: '点工收入',
-			data: []
-		}, {
-			name: '包工收入',
-			data: []
-		}]
-	})
-
-	// 修改环形图配置
-	const roseOpts = ref({
-		padding: [5, 5, 5, 5],
-		legend: {
-			show: true,
-			position: 'bottom',
-			size: 12,
-		},
-		extra: {
-			rose: {
-				type: 'radius',
-				offsetAngle: 0,
-				labelWidth: 15,
-				border: false,
-				borderWidth: 2,
-				borderColor: "#FFFFFF"
-			}
-		}
-	})
-
-	// 环形图数据
-	const roseData = ref({
-		series: [{
-			data: []
-		}]
-	})
-
-	// 图表状态管理
-	const chartReadyStatus = ref({
-		pie: false,
-		area: false,
-		rose: false
-	})
-
-	// 添加临时数据存储
-	const tempStatisticsData = ref(null)
-
-	// 添加金额显示控制相关的状态
-	const isAmountHidden = ref(true)
-	const temporaryShow = ref(false)
-	let hideTimeout = null
+	// 自定义图表数据
+	const pieSeriesData = ref([])
+	const trendCategories = ref([])
+	const trendSeries = ref([])
+	const workStatusData = ref([])
 
 	// 空数据判断
 	const hasIncomeData = computed(() => totalPointIncome.value > 0 || totalContractIncome.value > 0)
-	const hasDailyData = computed(() => areaData.value.categories.length > 0)
-	const hasWorkStatusData = computed(() => {
-		const s = roseData.value.series?.[0]?.data
-		if (!s || s.length === 0) return false
-		return s.some(item => item.name !== '暂无数据' && item.value > 0)
-	})
+	const hasDailyData = computed(() => trendCategories.value.length > 0)
+	const hasWorkStatusData = computed(() => workStatusData.value.some(item => item.value > 0))
+
+	// 金额显示控制
+	const isAmountHidden = ref(false)
+	const temporaryShow = ref(false)
+	let hideTimeout = null
 
 	// 获取项目列表
 	const getProjectList = async () => {
@@ -437,20 +291,7 @@
 		}
 	}
 
-	// 添加图表完成回调
-	const onChartComplete = (type) => {
-		chartReadyStatus.value[type] = true
-
-		// 检查所有图表是否都已准备就绪
-		if (Object.values(chartReadyStatus.value).every(status => status)) {
-			// 如果有待更新的数据，立即更新
-			if (tempStatisticsData.value) {
-				updateChartData(tempStatisticsData.value)
-			}
-		}
-	}
-
-	// 修改加载统计数据的方法
+	// 加载统计数据
 	const loadStatistics = async () => {
 		if (!currentProject.value.id || !startDate.value || !endDate.value) return
 
@@ -467,16 +308,8 @@
 
 			const res = await statisticsApi.getStatistics(params)
 			if (res.success) {
-				// 先保存数据
-				tempStatisticsData.value = res.data
-
-				// 更新基础统计数据
 				updateBasicStats(res.data)
-
-				// 如果图表都已准备就绪，直接更新图表数据
-				if (Object.values(chartReadyStatus.value).every(status => status)) {
-					updateChartData(res.data)
-				}
+				updateChartData(res.data)
 			}
 		} catch (error) {
 			uni.showToast({
@@ -527,36 +360,21 @@
 
 	const updateChartData = (data) => {
 		const stats = data.statistics
-		const hasIncome = stats.point_income > 0 || stats.contract_income > 0
-		const hasWorkStatus = stats.work_status.normal_work_count > 0 ||
-			stats.work_status.rest_count > 0 || stats.work_status.overtime_count > 0
-		const hasDailyData = stats.daily_income && stats.daily_income.length > 0
 
-		// 饼图：无数据时显示占位
-		if (hasIncome) {
-			pieData.value = {
-				series: [{
-					data: [
-						{ name: '点工收入', value: stats.point_income },
-						{ name: '包工收入', value: stats.contract_income }
-					]
-				}]
-			}
-		} else {
-			pieData.value = {
-				series: [{
-					data: [{ name: '暂无数据', value: 1 }]
-				}]
-			}
-		}
+		// 环形图：收入构成
+		const seriesItems = []
+		if (stats.point_income > 0) seriesItems.push({ name: '点工收入', data: stats.point_income, color: '#ff6700' })
+		if (stats.contract_income > 0) seriesItems.push({ name: '包工收入', data: stats.contract_income, color: '#1890ff' })
+		if (stats.overtime_income > 0) seriesItems.push({ name: '加班收入', data: stats.overtime_income, color: '#52c41a' })
+		pieSeriesData.value = seriesItems
 
-		// 面积图
+		// 面积图：收入趋势
 		const dates = []
 		const pointIncomes = []
 		const contractIncomes = []
 		const totalIncomes = []
 
-		if (hasDailyData) {
+		if (stats.daily_income && stats.daily_income.length > 0) {
 			const useMonthAgg = shouldAggregateByMonth(currentRange.value, startDate.value, endDate.value)
 
 			if (useMonthAgg) {
@@ -584,40 +402,19 @@
 			}
 		}
 
-		areaData.value = {
-			categories: dates,
-			series: [{
-				name: '点工收入',
-				data: pointIncomes
-			}, {
-				name: '包工收入',
-				data: contractIncomes
-			}, {
-				name: '总收入',
-				data: totalIncomes
-			}]
-		}
+		trendCategories.value = dates
+		trendSeries.value = [
+			{ name: '点工收入', data: pointIncomes },
+			{ name: '包工收入', data: contractIncomes },
+			{ name: '总收入', data: totalIncomes }
+		]
 
-		// 玫瑰图：无数据时显示占位
-		if (hasWorkStatus) {
-			roseData.value = {
-				series: [{
-					data: [
-						{ name: '正常工作', value: stats.work_status.normal_work_count },
-						{ name: '休息', value: stats.work_status.rest_count },
-						{ name: '加班', value: stats.work_status.overtime_count }
-					]
-				}]
-			}
-		} else {
-			roseData.value = {
-				series: [{
-					data: [{ name: '暂无数据', value: 1 }]
-				}]
-			}
-		}
-
-		tempStatisticsData.value = null
+		// 饼图：工作状态分析
+		workStatusData.value = [
+			{ name: '正常工作', value: stats.work_status.normal_work_count, color: '#ff6700' },
+			{ name: '休息', value: stats.work_status.rest_count, color: '#52c41a' },
+			{ name: '加班', value: stats.work_status.overtime_count, color: '#1890ff' }
+		]
 	}
 
 	// 从缓存读取设置
@@ -701,6 +498,7 @@
 	})
 
 	onShow(() => {
+		refreshTheme()
 		loadUserSettings()
 		if (!isLoading.value) {
 			initData()
@@ -724,13 +522,13 @@
 <style lang="scss" scoped>
 	.stats-container {
 		min-height: 100vh; min-height: 100dvh;
-		background-color: #f8f9fc;
+		background-color: var(--bg-page);
 		padding-bottom: 140rpx;
 
 		.app-header-box {
 			width: 100vw;
 			height: var(--status-bar-height);
-			background: #fff;
+			background: var(--bg-card-solid);
 			position: fixed;
 			top: 0;
 			left: 0;
@@ -740,17 +538,17 @@
 		.ay-title {
 			position: sticky;
 			top: var(--status-bar-height);
-			background: #fff;
+			background: var(--bg-card-solid);
 			z-index: 1;
 		}
 
 		// 时间范围选择器
 		.date-range {
 			margin: 20rpx;
-			background: #fff;
+			background: var(--bg-card-solid);
 			border-radius: 20rpx;
 			padding: 24rpx;
-			box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+			box-shadow: var(--shadow-card);
 
 			.range-header {
 				display: flex;
@@ -760,21 +558,21 @@
 
 				.title {
 					font-size: 30rpx;
-					color: #333;
+					color: var(--text-primary);
 					font-weight: bold;
 				}
 
 				.range-tabs {
 					display: flex;
 					gap: 12rpx;
-					background: #f8f9fc;
+					background: var(--bg-input);
 					padding: 4rpx;
 					border-radius: 32rpx;
 
 					.tab-item {
 						padding: 12rpx 24rpx;
 						font-size: 26rpx;
-						color: #666;
+						color: var(--text-secondary);
 						background: transparent;
 						border-radius: 24rpx;
 						transition: all 0.3s;
@@ -795,21 +593,21 @@
 
 				.date-input {
 					flex: 1;
-					background: #f8f9fc;
+					background: var(--bg-input);
 					padding: 20rpx 24rpx;
 					border-radius: 16rpx;
 					font-size: 26rpx;
-					color: #333;
+					color: var(--text-primary);
 					text-align: center;
 					transition: all 0.3s;
 
 					&:active {
-						background: #f5f5f5;
+						background: var(--divider);
 					}
 				}
 
 				.separator {
-					color: #999;
+					color: var(--text-tertiary);
 					font-size: 26rpx;
 				}
 			}
@@ -884,11 +682,11 @@
 
 		// 收入构成
 		.chart-section {
-			background: #fff;
+			background: var(--bg-card-solid);
 			border-radius: 24rpx;
 			padding: 30rpx;
 			margin: 0 20rpx 30rpx;
-			box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+			box-shadow: var(--shadow-card);
 
 			.title {
 				transform: translateX(-20rpx);
@@ -903,9 +701,9 @@
 				display: flex;
 				align-items: center;
 				justify-content: center;
-				color: #ccc;
+				color: var(--text-placeholder);
 				font-size: 28rpx;
-				background: rgba(255, 255, 255, 0.9);
+				background: var(--bg-card-solid);
 				z-index: 1;
 			}
 
@@ -914,14 +712,14 @@
 				justify-content: space-around;
 				margin-top: 20rpx;
 				padding-top: 20rpx;
-				border-top: 2rpx solid #f5f5f5;
+				border-top: 2rpx solid var(--divider);
 
 				.income-item {
 					text-align: center;
 
 					.label {
 						font-size: 26rpx;
-						color: #666;
+						color: var(--text-secondary);
 						margin-bottom: 8rpx;
 						display: block;
 					}
@@ -942,10 +740,10 @@
 		// 每日收入趋势
 		.daily-income {
 			margin: 20rpx;
-			background: #fff;
+			background: var(--bg-card-solid);
 			border-radius: 24rpx;
 			padding: 30rpx;
-			box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+			box-shadow: var(--shadow-card);
 
 			.income-header {
 				margin-bottom: 30rpx;
@@ -953,7 +751,7 @@
 				.title {
 					font-size: 32rpx;
 					font-weight: bold;
-					color: #333;
+					color: var(--text-primary);
 				}
 			}
 
@@ -972,7 +770,7 @@
 				.title {
 					font-size: 32rpx;
 					font-weight: bold;
-					color: #333;
+					color: var(--text-primary);
 				}
 			}
 
@@ -986,10 +784,10 @@
 		// 工作详情
 		.work-details {
 			margin: 20rpx;
-			background: #fff;
+			background: var(--bg-card-solid);
 			border-radius: 24rpx;
 			padding: 30rpx;
-			box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+			box-shadow: var(--shadow-card);
 
 			.details-header {
 				margin-bottom: 30rpx;
@@ -997,7 +795,7 @@
 				.title {
 					font-size: 32rpx;
 					font-weight: bold;
-					color: #333;
+					color: var(--text-primary);
 				}
 			}
 
@@ -1008,28 +806,26 @@
 				margin-top: 30rpx;
 
 				.detail-item {
-					background: linear-gradient(135deg, #f8f9fc, #fff);
+					background: var(--bg-input);
 					padding: 30rpx;
 					border-radius: 20rpx;
-					border: 2rpx solid #f0f0f0;
+					border: 2rpx solid var(--divider);
 					transition: all 0.3s;
 
 					&:hover {
 						transform: translateY(-2rpx);
-						box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+						box-shadow: var(--shadow-card);
 					}
 
 					.item-label {
 						font-size: 26rpx;
-						color: #666;
+						color: var(--text-secondary);
 						margin-bottom: 16rpx;
 					}
 
 					.item-value {
 						font-size: 36rpx;
-						background: linear-gradient(135deg, #333, #666);
-						-webkit-background-clip: text;
-						color: transparent;
+						color: var(--text-primary);
 						font-weight: bold;
 					}
 
@@ -1044,10 +840,10 @@
 
 	.card-shadow {
 		margin: 20rpx;
-		background: #fff;
+		background: var(--bg-card-solid);
 		border-radius: 24rpx;
 		padding: 36rpx;
-		box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
+		box-shadow: var(--shadow-card);
 
 		.composition-header,
 		.income-header,
@@ -1056,7 +852,7 @@
 			.title {
 				font-size: 32rpx;
 				font-weight: bold;
-				color: #333;
+				color: var(--text-primary);
 				position: relative;
 				padding-left: 24rpx;
 
@@ -1093,12 +889,12 @@
 				align-items: center;
 				gap: 12rpx;
 				padding: 8rpx 20rpx;
-				background: #f8f9fc;
+				background: var(--bg-input);
 				border-radius: 20rpx;
 				transition: all 0.3s;
 
 				&:hover {
-					background: #f5f5f5;
+					background: var(--divider);
 				}
 
 				.dot {
@@ -1117,7 +913,7 @@
 
 				.label {
 					font-size: 26rpx;
-					color: #333;
+					color: var(--text-primary);
 				}
 			}
 		}
@@ -1131,28 +927,26 @@
 			margin-top: 30rpx;
 
 			.detail-item {
-				background: linear-gradient(135deg, #f8f9fc, #fff);
+				background: var(--bg-input);
 				padding: 30rpx;
 				border-radius: 20rpx;
-				border: 2rpx solid #f0f0f0;
+				border: 2rpx solid var(--divider);
 				transition: all 0.3s;
 
 				&:hover {
 					transform: translateY(-2rpx);
-					box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+					box-shadow: var(--shadow-card);
 				}
 
 				.item-label {
 					font-size: 26rpx;
-					color: #666;
+					color: var(--text-secondary);
 					margin-bottom: 16rpx;
 				}
 
 				.item-value {
 					font-size: 36rpx;
-					background: linear-gradient(135deg, #333, #666);
-					-webkit-background-clip: text;
-					color: transparent;
+					color: var(--text-primary);
 					font-weight: bold;
 				}
 

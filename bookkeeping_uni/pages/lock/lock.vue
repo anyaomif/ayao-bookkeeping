@@ -1,8 +1,7 @@
 <template>
-	<view class="lock-page" @touchmove.stop.prevent>
+	<view class="lock-page" :style="themeVars" @touchmove.stop.prevent>
 		<view class="lock-content">
 			<image class="lock-logo" src="/static/logo.png" mode="aspectFit"></image>
-			<text class="lock-title">俺要记账</text>
 			<view class="lock-icon">
 				<tn-icon name="fingerprint" size="120" color="#ff6700"></tn-icon>
 			</view>
@@ -15,7 +14,11 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import { onLoad, onBackPress } from '@dcloudio/uni-app';
+import { getThemeVars } from '@/utils/theme';
+
+const themeVars = ref(getThemeVars());
 
 onBackPress(() => true);
 
@@ -57,7 +60,7 @@ onLoad(() => {
 .lock-page {
 	width: 100vw;
 	height: 100vh;
-	background-color: #ffffff;
+	background-color: var(--bg-page);
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -69,19 +72,19 @@ onLoad(() => {
 	gap: 32rpx;
 }
 .lock-logo {
-	width: 120rpx;
-	height: 120rpx;
+	width: 180rpx;
+	height: 180rpx;
 	border-radius: 30rpx;
 }
 .lock-title {
 	font-size: 36rpx;
 	font-weight: 600;
-	color: #333;
+	color: var(--text-primary);
 }
 .lock-icon { margin: 40rpx 0; }
 .lock-tip {
 	font-size: 28rpx;
-	color: #999;
+	color: var(--text-tertiary);
 }
 .lock-retry {
 	margin-top: 40rpx;

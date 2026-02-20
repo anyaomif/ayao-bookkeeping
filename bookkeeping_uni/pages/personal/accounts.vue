@@ -1,16 +1,16 @@
 <template>
-	<view class="accounts-container">
+	<view class="accounts-container" :style="themeVars">
 		<!-- 自定义导航栏 -->
 		<NavbarWrapper sticky>
 			<view class="custom-navbar">
 				<view class="nav-left">
-					<tn-icon name="left" size="44" color="#1c1c1e" @click="goBack"></tn-icon>
+					<tn-icon name="left" size="44" :color="isDark ? '#f5f5f5' : '#1c1c1e'" @click="goBack"></tn-icon>
 				</view>
 				<view class="nav-center">
 					<text class="nav-title">账户管理</text>
 				</view>
 				<view class="nav-right" @click="openAccountPopup()">
-					<tn-icon name="add" size="44" color="#1c1c1e"></tn-icon>
+					<tn-icon name="add" size="44" :color="isDark ? '#f5f5f5' : '#1c1c1e'"></tn-icon>
 				</view>
 			</view>
 		</NavbarWrapper>
@@ -104,6 +104,11 @@
 import { ref, computed, reactive } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { personalAccountApi } from '@/api/personal_account';
+import { isDarkMode, getThemeVars } from '@/utils/theme';
+
+const isDark = ref(false);
+const themeVars = ref({});
+const refreshTheme = () => { isDark.value = isDarkMode(); themeVars.value = getThemeVars(); };
 
 const showPopup = ref(false);
 const popupMode = ref('add');
@@ -233,12 +238,12 @@ const confirmDelete = (account) => {
 	});
 };
 
-onShow(() => { loadAccounts(); });
+onShow(() => { refreshTheme(); loadAccounts(); });
 </script>
 
 <style lang="scss" scoped>
 .accounts-container {
-	background-color: #f6f6f6;
+	background-color: var(--bg-page, #f6f6f6);
 	min-height: 100vh; min-height: 100dvh;
 }
 
@@ -249,7 +254,7 @@ onShow(() => { loadAccounts(); });
 	width: 100%;
 	height: 88rpx;
 	padding: 0 10rpx;
-	background-color: #f6f6f6;
+	background-color: var(--bg-page, #f6f6f6);
 
 	.nav-left,
 	.nav-right {
@@ -263,58 +268,58 @@ onShow(() => { loadAccounts(); });
 	.nav-title {
 		font-size: 34rpx;
 		font-weight: 600;
-		color: #1c1c1e;
+		color: var(--text-primary, #1c1c1e);
 	}
 }
 
 .summary-hero {
 	padding: 20rpx 30rpx;
-	background-color: #f6f6f6;
+	background-color: var(--bg-page, #f6f6f6);
 
 	.hero-content {
-		background: #fff;
+		background: var(--bg-card-solid, #fff);
 		border-radius: 24rpx;
 		padding: 40rpx;
-		box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+		box-shadow: var(--shadow-card, 0 4rpx 24rpx rgba(0, 0, 0, 0.06));
 		text-align: center;
 	}
 
 	.hero-label {
 		font-size: 28rpx;
-		color: #666;
+		color: var(--text-secondary, #666);
 	}
 
 	.hero-amount {
 		margin: 10rpx 0;
 		font-size: 64rpx;
 		font-weight: 700;
-		color: #1c1c1e;
+		color: var(--text-primary, #1c1c1e);
 		letter-spacing: -2rpx;
 	}
 }
 
 .accounts-list-section {
 	padding: 0 30rpx;
-	background-color: #f6f6f6;
+	background-color: var(--bg-page, #f6f6f6);
 }
 
 .accounts-card {
 	border-radius: 24rpx;
 	overflow: hidden;
-	box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
-	background: #fff;
+	box-shadow: var(--shadow-card, 0 4rpx 24rpx rgba(0, 0, 0, 0.06));
+	background: var(--bg-card-solid, #fff);
 }
 
 .swipe-wrapper {
 	position: relative;
 	overflow: hidden;
-	&:not(:last-child) { border-bottom: 1rpx solid #f5f5f5; }
+	&:not(:last-child) { border-bottom: 1rpx solid var(--divider, #f5f5f5); }
 }
 
 .swipe-content {
 	position: relative;
 	z-index: 1;
-	background: #fff;
+	background: var(--bg-card-solid, #fff);
 	transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 	&.no-transition { transition: none; }
 }
@@ -349,11 +354,11 @@ onShow(() => { loadAccounts(); });
 	align-items: center;
 	justify-content: space-between;
 	padding: 28rpx 24rpx;
-	background-color: #fff;
+	background-color: var(--bg-card-solid, #fff);
 	transition: background-color 0.2s ease;
 
 	&:active {
-		background-color: #f8f8f8;
+		background-color: var(--bg-input, #f8f8f8);
 	}
 
 	.item-left {
@@ -380,12 +385,12 @@ onShow(() => { loadAccounts(); });
 	.account-name {
 		font-size: 30rpx;
 		font-weight: 500;
-		color: #1c1c1e;
+		color: var(--text-primary, #1c1c1e);
 	}
 
 	.account-balance {
 		font-size: 26rpx;
-		color: #8e8e93;
+		color: var(--text-tertiary, #8e8e93);
 	}
 }
 
@@ -395,7 +400,7 @@ onShow(() => { loadAccounts(); });
 	padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
 	border-top-left-radius: 24rpx;
 	border-top-right-radius: 24rpx;
-	background-color: #fff;
+	background-color: var(--bg-card-solid, #fff);
 }
 
 .popup-header {
@@ -408,7 +413,7 @@ onShow(() => { loadAccounts(); });
 .popup-title {
 	font-size: 32rpx;
 	font-weight: 600;
-	color: #1c1c1e;
+	color: var(--text-primary, #1c1c1e);
 }
 
 .form-section {
@@ -426,7 +431,7 @@ onShow(() => { loadAccounts(); });
 .form-label {
 	font-size: 28rpx;
 	font-weight: 500;
-	color: #1c1c1e;
+	color: var(--text-primary, #1c1c1e);
 }
 
 .icon-selector,
@@ -444,7 +449,7 @@ onShow(() => { loadAccounts(); });
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background-color: #f6f6f6;
+	background-color: var(--bg-input, #f6f6f6);
 	transition: all 0.2s ease;
 
 	&.active {

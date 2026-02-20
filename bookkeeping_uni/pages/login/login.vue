@@ -1,5 +1,5 @@
 <template>
-	<view class="login-container">
+	<view class="login-container" :style="themeVars">
 		<!-- Logo区域 -->
 		<view class="logo-box">
 			<image class="logo" src="/static/logo.png" mode="aspectFit"></image>
@@ -10,15 +10,15 @@
 		<view class="form-box">
 			<view class="input-item">
 				<tn-icon name="my" class="iconfont" size="48" color="#ff6700"></tn-icon>
-				<input type="text" v-model="formData.username" placeholder="请输入用户名" placeholder-class="placeholder" />
+				<input type="text" v-model="formData.username" placeholder="请输入用户名" :placeholder-style="isDark ? 'color:#636366' : 'color:#999'" />
 			</view>
 
 			<view class="input-item">
 				<tn-icon name="lock" class="iconfont" size="48" color="#ff6700"></tn-icon>
 				<input :type="showPassword ? 'text' : 'password'" v-model="formData.password" placeholder="请输入密码"
-					placeholder-class="placeholder" />
+					:placeholder-style="isDark ? 'color:#636366' : 'color:#999'" />
 				<tn-icon :name="showPassword ? 'eye-close' : 'eye-hide'" class="iconfont" size="48"
-					@tap="togglePassword"></tn-icon>
+					:color="isDark ? '#8e8e93' : '#999'" @tap="togglePassword"></tn-icon>
 			</view>
 
 			<button class="login-btn" @tap="handleLogin">登 录</button>
@@ -42,6 +42,10 @@
 	import {
 		userApi
 	} from '@/api/user.js'
+	import { isDarkMode, getThemeVars } from '@/utils/theme'
+
+	const isDark = ref(isDarkMode())
+	const themeVars = ref(getThemeVars())
 	
 	onLoad(() => {
 		const token = uni.getStorageSync('token')
@@ -136,7 +140,7 @@
 	.login-container {
 		min-height: 100vh; min-height: 100dvh;
 		padding: 60rpx;
-		background-color: #fff;
+		background-color: var(--bg-page);
 
 		.logo-box {
 			display: flex;
@@ -156,7 +160,7 @@
 			.title {
 				font-size: 36rpx;
 				font-weight: bold;
-				color: #333;
+				color: var(--text-primary);
 			}
 		}
 
@@ -168,23 +172,19 @@
 				height: 100rpx;
 				margin-bottom: 30rpx;
 				padding: 0 30rpx;
-				background-color: #f8f8f8;
+				background-color: var(--bg-input);
 				border-radius: 50rpx;
 
 				.iconfont {
 					margin-right: 20rpx;
 					font-size: 40rpx;
-					color: #999;
 				}
 
 				input {
 					flex: 1;
 					height: 100%;
 					font-size: 28rpx;
-				}
-
-				.placeholder {
-					color: #999;
+					color: var(--text-primary);
 				}
 			}
 
@@ -211,7 +211,7 @@
 
 				text {
 					font-size: 26rpx;
-					color: #666;
+					color: var(--text-secondary);
 
 					&:active {
 						color: #ff6700;

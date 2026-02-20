@@ -1,5 +1,5 @@
 <template>
-	<view class="ay-calendar-container">
+	<view class="ay-calendar-container" :style="themeVars">
 		<view class="calendar-navigation">
 			<view class="calendar-nav-prev" @click="prevMonth" :class="{'calendar-nav-prev-disabled': isAtStart}">
 				<tn-icon class="calendar-nav-prev-icon" name="left" size="36" offset-top="2"></tn-icon>
@@ -75,6 +75,7 @@
 	import {
 		getLunarDate
 	} from '@/utils/lunar-calendar';
+	import { isDarkMode, getThemeVars } from '@/utils/theme';
 
 	export default {
 		name: 'AyCalendar',
@@ -102,6 +103,8 @@
 		},
 		data() {
 			return {
+				isDark: isDarkMode(),
+				themeVars: getThemeVars(),
 				selectedDate: null,
 				currentSlide: 0,
 				monthSlides: [],
@@ -336,9 +339,9 @@
 	.ay-calendar-container {
 		width: 100%;
 		height: 100%;
-		background-color: #fff;
-		border-radius: 12px;
-		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+		background-color: var(--bg-card-solid, #fff);
+		// border-radius: 12px;
+		box-shadow: var(--shadow-card, 0 4px 6px rgba(0, 0, 0, 0.1));
 		overflow: hidden;
 
 		.calendar {
@@ -448,9 +451,10 @@
 					border: 2rpx solid transparent;
 					box-sizing: border-box;
 					z-index: 1;
+					color: var(--text-primary, #333);
 
 					&:not(.current-month) {
-						color: #ccc;
+						color: var(--text-placeholder, #ccc);
 						cursor: default;
 					}
 
@@ -466,7 +470,7 @@
 					}
 
 					&.disabled {
-						color: #ccc;
+						color: var(--text-placeholder, #ccc);
 						cursor: not-allowed;
 						opacity: 0.5;
 					}
@@ -482,7 +486,7 @@
 						display: block;
 						white-space: nowrap;
 						font-size: 20rpx;
-						color: #999;
+						color: var(--text-tertiary, #999);
 					}
 				}
 			}

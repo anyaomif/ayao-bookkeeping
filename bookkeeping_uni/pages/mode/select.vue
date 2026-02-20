@@ -1,8 +1,8 @@
 <template>
-	<view class="mode-select-container">
+	<view class="mode-select-container" :style="themeVars">
 		<!-- 从"我的"页面进入时显示返回按钮 -->
 		<view class="back-btn" v-if="fromPerson" @click="goBack">
-			<tn-icon name="left" size="44" color="#1c1c1e"></tn-icon>
+			<tn-icon name="left" size="44" :color="isDark ? '#f5f5f5' : '#1c1c1e'"></tn-icon>
 		</view>
 
 		<view class="title-section">
@@ -48,7 +48,10 @@
 	import { personalCategoryApi } from '@/api/personal_category';
 	import { personalAccountApi } from '@/api/personal_account';
 	import { userApi } from '@/api/user';
+	import { isDarkMode, getThemeVars } from '@/utils/theme';
 
+	const isDark = ref(isDarkMode());
+	const themeVars = ref(getThemeVars());
 	const fromPerson = ref(false);
 
 	onLoad((options) => {
@@ -107,7 +110,7 @@
 		align-items: center;
 		justify-content: center;
 		height: 100vh; height: 100dvh;
-		background-color: #f7f7f8;
+		background-color: var(--bg-page);
 		padding: 40rpx;
 		box-sizing: border-box;
 		position: relative;
@@ -123,8 +126,8 @@
 		align-items: center;
 		justify-content: center;
 		border-radius: 50%;
-		background-color: rgba(255, 255, 255, 0.8);
-		box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+		background-color: var(--bg-card);
+		box-shadow: var(--shadow-card);
 	}
 
 	.title-section {
@@ -138,14 +141,14 @@
 		.main-title {
 			font-size: 56rpx;
 			font-weight: 600;
-			color: #1c1c1e;
+			color: var(--text-primary);
 		}
 
 		.subtitle {
 			font-size: 36rpx;
-			color: #8e8e93;
+			color: var(--text-tertiary);
 			margin-left: 16rpx;
-			padding-bottom: 4rpx; // 微调基线对齐
+			padding-bottom: 4rpx;
 		}
 	}
 
@@ -159,10 +162,10 @@
 
 	.mode-card {
 		width: 100%;
-		background-color: #ffffff;
+		background-color: var(--bg-card-solid);
 		border-radius: 48rpx;
-		border: 1rpx solid rgba(0, 0, 0, 0.08);
-		box-shadow: 0 10rpx 40rpx rgba(0, 0, 0, 0.04);
+		border: 1rpx solid var(--bg-card-border);
+		box-shadow: var(--shadow-card);
 		overflow: hidden;
 		transition: transform 0.25s ease-out, box-shadow 0.25s ease-out;
 		opacity: 0;
@@ -170,7 +173,6 @@
 
 		&:active {
 			transform: scale(0.98);
-			box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
 		}
 
 		.card-content {
@@ -203,7 +205,6 @@
 			.icon-wrapper {
 				background: linear-gradient(135deg, #e6f7ff, #d6eeff);
 				.tn-icon {
-					// 蓝色图标微调
 					transform: translateX(-2rpx);
 				}
 			}
@@ -212,13 +213,13 @@
 		.card-title {
 			font-size: 42rpx;
 			font-weight: 600;
-			color: #1c1c1e;
+			color: var(--text-primary);
 			margin-bottom: 16rpx;
 		}
 
 		.card-description {
 			font-size: 28rpx;
-			color: #8e8e93;
+			color: var(--text-tertiary);
 			line-height: 1.5;
 		}
 	}
@@ -227,7 +228,7 @@
 		position: absolute;
 		bottom: 24rpx;
 		font-size: 26rpx;
-		color: #aeaebe;
+		color: var(--text-placeholder);
 		opacity: 0;
 		animation: element-fade-in 0.5s ease-out 0.3s forwards;
 	}

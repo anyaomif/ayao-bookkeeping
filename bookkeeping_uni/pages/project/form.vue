@@ -1,5 +1,5 @@
 <template>
-	<view class="project-form">
+	<view class="project-form" :style="themeVars">
 		<!-- 表单内容 -->
 		<view class="form-content">
 			<!-- 基本信息 -->
@@ -126,6 +126,9 @@
 		formatDate,
 		getNowDate
 	} from '@/utils/ayao.js'
+	import { getThemeVars, setNavBarTheme } from '@/utils/theme'
+
+	const themeVars = ref(getThemeVars())
 
 	const statusOptions = [{
 			label: '进行中',
@@ -291,6 +294,7 @@
 	}
 
 	onLoad((options) => {
+		setNavBarTheme()
 		const params = getParams(options)
 		if (params?.id) {
 			isEdit.value = true
@@ -303,7 +307,7 @@
 <style lang="scss" scoped>
 	.project-form {
 		min-height: 100vh; min-height: 100dvh;
-		background-color: #f8f9fc;
+		background-color: var(--bg-page);
 		padding-bottom: calc(env(safe-area-inset-bottom) + 120rpx);
 
 		.form-content {
@@ -311,11 +315,11 @@
 		}
 
 		.form-section {
-			background-color: #fff;
+			background-color: var(--bg-card-solid);
 			border-radius: 24rpx;
 			padding: 30rpx;
 			margin-bottom: 20rpx;
-			box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+			box-shadow: var(--shadow-card);
 
 			.form-item {
 				display: flex;
@@ -338,7 +342,7 @@
 				.label {
 					width: 180rpx;
 					font-size: 28rpx;
-					color: #333;
+					color: var(--text-primary);
 					padding: 8rpx 0 0 10rpx;
 					position: relative;
 
@@ -359,7 +363,7 @@
 
 				.unit {
 					font-size: 26rpx;
-					color: #666;
+					color: var(--text-secondary);
 					margin-left: 8rpx;
 					padding-right: 8rpx;
 				}
@@ -377,10 +381,10 @@
 				display: flex;
 				align-items: center;
 				justify-content: center;
-				background-color: #f5f5f5;
+				background-color: var(--bg-input);
 				border-radius: 44rpx;
 				font-size: 28rpx;
-				color: #666;
+				color: var(--text-secondary);
 				transition: all 0.3s;
 
 				&.active {
@@ -404,8 +408,8 @@
 			right: 0;
 			padding: 20rpx 30rpx;
 			padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
-			background-color: #fff;
-			box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.04);
+			background-color: var(--bg-card-solid);
+			box-shadow: var(--shadow-card);
 
 			.submit-btn {
 				height: 88rpx;
@@ -427,7 +431,7 @@
 		}
 
 		.calendar-container {
-			background-color: #fff;
+			background-color: var(--bg-card-solid);
 			border-radius: 24rpx 24rpx 0 0;
 			overflow: hidden;
 		}

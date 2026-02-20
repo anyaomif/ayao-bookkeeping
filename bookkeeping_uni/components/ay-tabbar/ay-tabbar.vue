@@ -1,7 +1,8 @@
 <template>
   <view class="ay-tabbar" v-show="visible" :class="{ 
     'is-float': isFloat,
-    'is-frosted': frosted 
+    'is-frosted': frosted,
+    'is-ios': isIOS
   }">
     <view class="tabbar-content" :class="{ 'is-frosted': frosted }">
       <view 
@@ -53,6 +54,7 @@ export default {
     return {
       visible: true,
       currentMode: 'work',
+      isIOS: false,
       workTabList: [
         {
           text: '首页',
@@ -85,6 +87,12 @@ export default {
           iconPath: '/static/tabbar/stats.png',
           selectedIconPath: '/static/tabbar/stats-active.png',
           pagePath: '/pages/personal/detail'
+        },
+        {
+          text: '报表',
+          iconPath: '/static/tabbar/stats.png',
+          selectedIconPath: '/static/tabbar/stats-active.png',
+          pagePath: '/pages/personal/report'
         },
         {
           text: '我的',
@@ -121,15 +129,18 @@ export default {
   },
   mounted() {
     this.loadMode();
-    uni.$on('toggleTabbar', (show) => {
-      this.visible = show
-    })
+    // #ifdef APP-PLUS
+    this.isIOS = uni.getSystemInfoSync().platform === 'ios';
+    // #endif
+    this._toggleHandler = (show) => { this.visible = show };
+    uni.$on('toggleTabbar', this._toggleHandler);
   },
   activated() {
     this.loadMode();
+    this.visible = true;
   },
   beforeUnmount() {
-    uni.$off('toggleTabbar')
+    if (this._toggleHandler) uni.$off('toggleTabbar', this._toggleHandler);
   }
 }
 </script>
@@ -141,12 +152,16 @@ export default {
   left: 0;
   width: 100vw;
   z-index: 999;
+  padding-bottom: env(safe-area-inset-bottom);
+  background-color: transparent;
   
   &.is-float {
     bottom: 20px;
+    bottom: calc(20px + env(safe-area-inset-bottom));
     left: 50%;
     transform: translateX(-50%);
     width: 90%;
+    padding-bottom: 0;
     
     .tabbar-content {
       border-radius: 30px;
@@ -156,21 +171,21 @@ export default {
 
   &.is-frosted {
     .tabbar-content {
-      background-color: rgba(255, 255, 255, 0.7);
+      background-color: var(--bg-card);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      border: 1px solid var(--bg-card-border);
+      box-shadow: var(--shadow-card);
     }
   }
   
   .tabbar-content {
-    background-color: #ffffff;
+    background-color: var(--bg-card-solid);
     padding: 8px 0;
     display: flex;
     justify-content: space-around;
     align-items: center;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-card);
     transition: all 0.3s ease;
 
     &.is-frosted {
@@ -196,7 +211,7 @@ export default {
     
     &.active {
       .tab-text {
-        color: #ff6700;
+        color: var(--color-brand);
         font-weight: bold;
       }
     }
@@ -218,13 +233,17 @@ export default {
     
     .tab-text {
       font-size: 12px;
-      color: #666;
+      color: var(--text-secondary);
       transition: all 0.3s ease;
       
       &.text-only {
         font-size: 14px;
       }
     }
+  }
+
+  &.is-ios.is-float {
+    bottom: calc(env(safe-area-inset-bottom) - 12rpx);
   }
 }
 </style> 

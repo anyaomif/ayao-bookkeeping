@@ -11,7 +11,11 @@
 			"path": "pages/personal/dashboard",
 			"style": {
 				"navigationBarTitleText": "看板",
-				"navigationStyle": "custom"
+				"navigationStyle": "custom",
+				"backgroundColor": "#f5f5f5",
+				"app-plus": {
+					"backgroundColor": "#f5f5f5"
+				}
 			}
 		},
 		{
@@ -25,7 +29,11 @@
 			"path": "pages/personal/detail",
 			"style": {
 				"navigationBarTitleText": "交易明细",
-				"navigationStyle": "custom"
+				"navigationStyle": "custom",
+				"backgroundColor": "#f5f5f5",
+				"app-plus": {
+					"backgroundColor": "#f5f5f5"
+				}
 			}
 		},
 		{
@@ -150,6 +158,17 @@
 			"path": "pages/forget/forget",
 			"style": {
 				"navigationBarTitleText": "忘记密码"
+			}
+		},
+		{
+			"path": "pages/personal/report",
+			"style": {
+				"navigationBarTitleText": "收支报表",
+				"navigationStyle": "custom",
+				"backgroundColor": "#f5f5f5",
+				"app-plus": {
+					"backgroundColor": "#f5f5f5"
+				}
 			}
 		},
 		{

@@ -1,14 +1,14 @@
 <template>
-	<view class="forget-container">
+	<view class="forget-container" :style="themeVars">
 		<view class="form-box">
 			<view class="input-item">
 				<tn-icon name="phone" class="iconfont" size="48" color="#ff6700"></tn-icon>
-				<input type="number" v-model="formData.phone" placeholder="请输入手机号" placeholder-class="placeholder" />
+				<input type="number" v-model="formData.phone" placeholder="请输入手机号" :placeholder-style="isDark ? 'color:#636366' : 'color:#999'" />
 			</view>
 
 			<view class="input-item">
 				<tn-icon name="safe" class="iconfont" size="48" color="#ff6700"></tn-icon>
-				<input type="number" v-model="formData.code" placeholder="请输入验证码" placeholder-class="placeholder" />
+				<input type="number" v-model="formData.code" placeholder="请输入验证码" :placeholder-style="isDark ? 'color:#636366' : 'color:#999'" />
 				<text class="verify-btn" :class="{ disabled: counting }"
 					@tap="sendCode">{{ counting ? `${counter}s` : '获取验证码' }}</text>
 			</view>
@@ -16,9 +16,9 @@
 			<view class="input-item">
 				<tn-icon name="lock" class="iconfont" size="48" color="#ff6700"></tn-icon>
 				<input :type="showPassword ? 'text' : 'password'" v-model="formData.password" placeholder="请输入新密码"
-					placeholder-class="placeholder" />
+					:placeholder-style="isDark ? 'color:#636366' : 'color:#999'" />
 				<tn-icon :name="showPassword ? 'eye-close' : 'eye-hide'" class="iconfont" size="48"
-					@tap="togglePassword"></tn-icon>
+					:color="isDark ? '#8e8e93' : '#999'" @tap="togglePassword"></tn-icon>
 			</view>
 
 			<button class="submit-btn" @tap="handleReset">重置密码</button>
@@ -34,6 +34,17 @@
 	import {
 		userApi
 	} from '@/api/user.js'
+	import { onShow } from '@dcloudio/uni-app'
+	import { isDarkMode, getThemeVars, setNavBarTheme } from '@/utils/theme'
+
+	const isDark = ref(isDarkMode())
+	const themeVars = ref(getThemeVars())
+
+	onShow(() => {
+		isDark.value = isDarkMode()
+		themeVars.value = getThemeVars()
+		setNavBarTheme()
+	})
 
 	const formData = reactive({
 		phone: '',
@@ -118,7 +129,7 @@
 	.forget-container {
 		min-height: 100vh; min-height: 100dvh;
 		padding: 0 60rpx;
-		background-color: #fff;
+		background-color: var(--bg-page);
 
 		.form-box {
 			.input-item {
@@ -128,23 +139,19 @@
 				height: 100rpx;
 				margin-bottom: 30rpx;
 				padding: 0 30rpx;
-				background-color: #f8f8f8;
+				background-color: var(--bg-input);
 				border-radius: 50rpx;
 
 				.iconfont {
 					margin-right: 20rpx;
 					font-size: 40rpx;
-					color: #999;
 				}
 
 				input {
 					flex: 1;
 					height: 100%;
 					font-size: 28rpx;
-				}
-
-				.placeholder {
-					color: #999;
+					color: var(--text-primary);
 				}
 
 				.verify-btn {
@@ -153,7 +160,7 @@
 					color: #ff6700;
 
 					&.disabled {
-						color: #999;
+						color: var(--text-tertiary);
 					}
 				}
 			}

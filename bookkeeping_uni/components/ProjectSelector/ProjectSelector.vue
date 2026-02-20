@@ -7,10 +7,10 @@
 
 	<!-- 弹出层 -->
 	<ay-popup v-model="showPopup" position="left" :zIndex="1001">
-		<view class="project-popup">
+		<view class="project-popup" :style="themeVars">
 			<view class="popup-header">
 				<text class="title">选择项目</text>
-				<tn-icon name="close" @tap="showPopup = false" size="40" color="#666"></tn-icon>
+				<tn-icon name="close" @tap="showPopup = false" size="40" :color="isDark ? '#8e8e93' : '#666'"></tn-icon>
 			</view>
 			<view class="project-list">
 				<view v-for="item in projectList" :key="item.id" class="project-item"
@@ -24,7 +24,7 @@
 					<tn-icon name="set" size="40" color="#ff6700"></tn-icon>
 					<text>项目管理</text>
 				</view>
-				<tn-icon name="right" size="40" color="#666"></tn-icon>
+				<tn-icon name="right" size="40" :color="isDark ? '#636366' : '#666'"></tn-icon>
 			</view>
 		</view>
 	</ay-popup>
@@ -33,6 +33,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { navigateTo } from '@/utils/ayao'
+import { isDarkMode, getThemeVars } from '@/utils/theme'
 
 const props = defineProps({
 	modelValue: { type: Object, default: () => ({}) },
@@ -42,10 +43,16 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'change'])
 
 const showPopup = ref(false)
+const isDark = ref(isDarkMode())
+const themeVars = ref(getThemeVars())
 
 // popup 打开时隐藏 tabbar，关闭时恢复
 watch(showPopup, (val) => {
 	uni.$emit('toggleTabbar', !val)
+	if (val) {
+		isDark.value = isDarkMode()
+		themeVars.value = getThemeVars()
+	}
 })
 
 const displayName = computed(() => {
@@ -88,7 +95,7 @@ const goProject = () => {
 .project-popup {
 	width: 50vw;
 	height: 100vh; height: 100dvh;
-	background-color: #fff;
+	background-color: var(--bg-card-solid, #fff);
 	padding-top: var(--status-bar-height);
 
 	.popup-header {
@@ -96,12 +103,12 @@ const goProject = () => {
 		justify-content: space-between;
 		align-items: center;
 		padding: 30rpx;
-		border-bottom: 2rpx solid #f5f5f5;
+		border-bottom: 2rpx solid var(--divider, #f5f5f5);
 
 		.title {
 			font-size: 32rpx;
 			font-weight: bold;
-			color: #333;
+			color: var(--text-primary, #333);
 		}
 	}
 
@@ -114,10 +121,11 @@ const goProject = () => {
 			align-items: center;
 			padding: 30rpx;
 			transition: all 0.3s;
+			color: var(--text-primary, #333);
 
 			&.active {
 				color: #ff6700;
-				background-color: #fff2e8;
+				background-color: rgba(255, 103, 0, 0.08);
 			}
 
 			.project-name {
@@ -135,6 +143,7 @@ const goProject = () => {
 		justify-content: space-between;
 		align-items: center;
 		padding: 20rpx 30rpx;
+		color: var(--text-primary, #333);
 
 		.left {
 			display: flex;

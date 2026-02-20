@@ -1,9 +1,9 @@
 <template>
-	<view class="ai-chat-page">
+	<view class="ai-chat-page" :style="themeVars">
 		<NavbarWrapper sticky>
 			<view class="chat-navbar">
 				<view class="nav-back" @click="goBack">
-					<tn-icon name="left" size="44"></tn-icon>
+					<tn-icon name="left" size="44" :color="isDark ? '#f5f5f5' : '#1c1c1e'"></tn-icon>
 				</view>
 				<text class="nav-title">小尧 AI 智能记账</text>
 				<view class="nav-right"></view>
@@ -174,12 +174,17 @@
 
 <script setup>
 import { ref, computed, nextTick } from 'vue';
-import { onLoad, onUnload } from '@dcloudio/uni-app';
+import { onLoad, onUnload, onShow } from '@dcloudio/uni-app';
 import { aiApi, aiStream, voiceToText } from '@/api/ai';
 import { userApi } from '@/api/user';
 import { personalCategoryApi } from '@/api/personal_category';
 import { personalAccountApi } from '@/api/personal_account';
 import { baseUrl } from '@/utils/ayao';
+import { isDarkMode, getThemeVars } from '@/utils/theme';
+
+const isDark = ref(false);
+const themeVars = ref({});
+const refreshTheme = () => { isDark.value = isDarkMode(); themeVars.value = getThemeVars(); };
 
 const inputText = ref('');
 const loading = ref(false);
@@ -266,6 +271,8 @@ onUnload(() => {
 	}
 	// #endif
 });
+
+onShow(() => { refreshTheme(); });
 
 const messages = ref([
 	{
@@ -672,7 +679,7 @@ const handleQuickAction = (text) => {
 	bottom: 0;
 	display: flex;
 	flex-direction: column;
-	background: #f5f5f5;
+	background: var(--bg-page, #f5f5f5);
 	overflow: hidden;
 }
 
@@ -682,13 +689,13 @@ const handleQuickAction = (text) => {
 	justify-content: space-between;
 	height: 88rpx;
 	padding: 0 30rpx;
-	background: #fff;
+	background: var(--bg-card-solid, #fff);
 	flex-shrink: 0;
 
 	.nav-title {
 		font-size: 32rpx;
 		font-weight: 600;
-		color: #1c1c1e;
+		color: var(--text-primary, #1c1c1e);
 	}
 
 	.nav-right {
@@ -731,7 +738,7 @@ const handleQuickAction = (text) => {
 }
 
 .ai-avatar {
-	background: #fff2e8;
+	background: var(--bg-card-solid, #fff2e8);
 }
 
 .user-avatar {
@@ -753,8 +760,8 @@ const handleQuickAction = (text) => {
 	word-break: break-all;
 
 	&.ai {
-		background: #fff;
-		color: #333;
+		background: var(--bg-card-solid, #fff);
+		color: var(--text-primary, #333);
 		border-top-left-radius: 8rpx;
 		box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
 	}
@@ -777,15 +784,8 @@ const handleQuickAction = (text) => {
 }
 
 @keyframes blink {
-
-	0%,
-	100% {
-		opacity: 1;
-	}
-
-	50% {
-		opacity: 0;
-	}
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0; }
 }
 
 .result-cards {
@@ -796,14 +796,14 @@ const handleQuickAction = (text) => {
 }
 
 .result-card {
-	background: #fef7f0;
+	background: var(--bg-input, #fef7f0);
 	border-radius: 16rpx;
 	padding: 16rpx 20rpx;
 	border-left: 6rpx solid #ff6700;
 
 	&.confirmed {
 		border-left-color: #34c759;
-		background: #f0faf4;
+		background: var(--bg-input, #f0faf4);
 	}
 }
 
@@ -815,27 +815,22 @@ const handleQuickAction = (text) => {
 	&.sub {
 		margin-top: 8rpx;
 		font-size: 24rpx;
-		color: #999;
+		color: var(--text-tertiary, #999);
 		gap: 16rpx;
 	}
 }
 
 .card-label {
 	font-size: 26rpx;
-	color: #666;
+	color: var(--text-secondary, #666);
 }
 
 .card-amount {
 	font-size: 32rpx;
 	font-weight: 600;
 
-	&.expense {
-		color: #ff3b30;
-	}
-
-	&.income {
-		color: #34c759;
-	}
+	&.expense { color: #ff3b30; }
+	&.income { color: #34c759; }
 }
 
 .card-actions {
@@ -854,26 +849,20 @@ const handleQuickAction = (text) => {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-
-	&:active {
-		opacity: 0.8;
-	}
+	&:active { opacity: 0.8; }
 }
 
 .action-discard {
 	height: 64rpx;
 	padding: 0 32rpx;
 	border-radius: 32rpx;
-	background: #f5f5f5;
-	color: #999;
+	background: var(--bg-input, #f5f5f5);
+	color: var(--text-tertiary, #999);
 	font-size: 26rpx;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-
-	&:active {
-		background: #eee;
-	}
+	&:active { background: var(--divider, #eee); }
 }
 
 .confirmed-tag {
@@ -885,7 +874,7 @@ const handleQuickAction = (text) => {
 .action-result {
 	margin-top: 16rpx;
 	padding: 12rpx 16rpx;
-	background: #f0faf4;
+	background: var(--bg-input, #f0faf4);
 	border-radius: 12rpx;
 	font-size: 24rpx;
 	color: #34c759;
@@ -894,7 +883,7 @@ const handleQuickAction = (text) => {
 
 .discarded-tag {
 	font-size: 24rpx;
-	color: #999;
+	color: var(--text-tertiary, #999);
 	margin-top: 12rpx;
 }
 
@@ -907,15 +896,11 @@ const handleQuickAction = (text) => {
 
 .quick-btn {
 	padding: 12rpx 24rpx;
-	background: #fff2e8;
+	background: var(--bg-input, #fff2e8);
 	border-radius: 24rpx;
 	font-size: 24rpx;
-	color: #ff6700;
-
-	&:active {
-		opacity: 0.7;
-		background: #ffe0c0;
-	}
+	color: var(--color-brand, #ff6700);
+	&:active { opacity: 0.7; }
 }
 
 .info-cards {
@@ -934,12 +919,12 @@ const handleQuickAction = (text) => {
 .info-group-title {
 	font-size: 26rpx;
 	font-weight: 600;
-	color: #ff6700;
+	color: var(--color-brand, #ff6700);
 	padding: 4rpx 0;
 }
 
 .info-item {
-	background: #fafafa;
+	background: var(--bg-input, #fafafa);
 	border-radius: 12rpx;
 	padding: 12rpx 16rpx;
 	display: flex;
@@ -949,12 +934,12 @@ const handleQuickAction = (text) => {
 
 .info-main {
 	font-size: 26rpx;
-	color: #333;
+	color: var(--text-primary, #333);
 }
 
 .info-sub {
 	font-size: 22rpx;
-	color: #999;
+	color: var(--text-tertiary, #999);
 	flex: 1;
 }
 
@@ -988,35 +973,16 @@ const handleQuickAction = (text) => {
 	width: 14rpx;
 	height: 14rpx;
 	border-radius: 50%;
-	background: #ccc;
+	background: var(--text-placeholder, #ccc);
 	animation: dotBounce 1.4s infinite ease-in-out both;
-
-	&:nth-child(1) {
-		animation-delay: 0s;
-	}
-
-	&:nth-child(2) {
-		animation-delay: 0.2s;
-	}
-
-	&:nth-child(3) {
-		animation-delay: 0.4s;
-	}
+	&:nth-child(1) { animation-delay: 0s; }
+	&:nth-child(2) { animation-delay: 0.2s; }
+	&:nth-child(3) { animation-delay: 0.4s; }
 }
 
 @keyframes dotBounce {
-
-	0%,
-	80%,
-	100% {
-		transform: scale(0.6);
-		opacity: 0.4;
-	}
-
-	40% {
-		transform: scale(1);
-		opacity: 1;
-	}
+	0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+	40% { transform: scale(1); opacity: 1; }
 }
 
 .input-bar {
@@ -1027,41 +993,35 @@ const handleQuickAction = (text) => {
 	gap: 16rpx;
 	padding: 16rpx 20rpx;
 	padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
-	background: #fff;
-	border-top: 1rpx solid #eee;
+	background: var(--bg-card-solid, #fff);
+	border-top: 1rpx solid var(--divider, #eee);
 }
 
 .chat-input {
 	flex: 1;
 	min-height: 80rpx;
 	max-height: 200rpx;
-	background: #f5f5f5;
+	background: var(--bg-input, #f5f5f5);
 	border-radius: 40rpx;
 	padding: 20rpx 32rpx;
 	font-size: 28rpx;
 	line-height: 1.5;
 	box-sizing: border-box;
 	overflow-y: auto;
+	color: var(--text-primary, #333);
 }
 
 .voice-btn {
 	width: 80rpx;
 	height: 80rpx;
 	border-radius: 50%;
-	background: #fff2e8;
+	background: var(--bg-input, #fff2e8);
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	flex-shrink: 0;
-
-	&:active {
-		opacity: 0.8;
-		transform: scale(0.92);
-	}
-
-	&.active {
-		background: #ffe5e5;
-	}
+	&:active { opacity: 0.8; transform: scale(0.92); }
+	&.active { background: #ffe5e5; }
 }
 
 .send-btn {
@@ -1073,15 +1033,8 @@ const handleQuickAction = (text) => {
 	align-items: center;
 	justify-content: center;
 	flex-shrink: 0;
-
-	&:active {
-		opacity: 0.8;
-		transform: scale(0.92);
-	}
-
-	&.disabled {
-		opacity: 0.4;
-	}
+	&:active { opacity: 0.8; transform: scale(0.92); }
+	&.disabled { opacity: 0.4; }
 }
 
 .scroll-bottom-anchor {
@@ -1102,7 +1055,7 @@ const handleQuickAction = (text) => {
 }
 
 .recording-modal {
-	background: #fff;
+	background: var(--bg-card-solid, #fff);
 	border-radius: 32rpx;
 	padding: 60rpx 80rpx;
 	display: flex;
@@ -1125,7 +1078,7 @@ const handleQuickAction = (text) => {
 
 .recording-tip {
 	font-size: 26rpx;
-	color: #999;
+	color: var(--text-tertiary, #999);
 }
 
 .stop-record-btn {
@@ -1136,11 +1089,7 @@ const handleQuickAction = (text) => {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-
-	&:active {
-		opacity: 0.7;
-		transform: scale(0.9);
-	}
+	&:active { opacity: 0.7; transform: scale(0.9); }
 }
 
 .recording-wave {
@@ -1156,7 +1105,6 @@ const handleQuickAction = (text) => {
 	background: #ff6700;
 	border-radius: 4rpx;
 	animation: waveAnim 1s ease-in-out infinite;
-
 	&:nth-child(1) { animation-delay: 0s; }
 	&:nth-child(2) { animation-delay: 0.15s; }
 	&:nth-child(3) { animation-delay: 0.3s; }
@@ -1180,7 +1128,6 @@ const handleQuickAction = (text) => {
 		border-radius: 50%;
 		background: #ff6700;
 		animation: dotBounce 1.4s infinite ease-in-out both;
-
 		&:nth-child(1) { animation-delay: 0s; }
 		&:nth-child(2) { animation-delay: 0.2s; }
 		&:nth-child(3) { animation-delay: 0.4s; }

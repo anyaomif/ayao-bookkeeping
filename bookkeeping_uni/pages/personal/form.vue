@@ -1,10 +1,10 @@
 <template>
-  <view class="form-container">
+  <view class="form-container" :style="themeVars">
     <!-- 自定义导航栏 -->
     <NavbarWrapper sticky>
       <view class="custom-navbar">
         <view class="nav-left" @click="goBack">
-          <tn-icon name="left" size="44" color="#1c1c1e"></tn-icon>
+          <tn-icon name="left" size="44" :color="isDark ? '#f5f5f5' : '#1c1c1e'"></tn-icon>
         </view>
         <view class="nav-center">
           <text class="nav-title">{{ isEdit ? '编辑记录' : '记一笔' }}</text>
@@ -57,7 +57,7 @@
                 '转账分类' }}</text>
             </view>
           </view>
-          <tn-icon name="right" size="32" color="#c7c7cc"></tn-icon>
+          <tn-icon name="right" size="32" :color="isDark ? '#636366' : '#c7c7cc'"></tn-icon>
         </view>
 
         <view class="divider"></view>
@@ -73,7 +73,7 @@
               <text class="item-subtitle" v-else>暂无账户，点击添加</text>
             </view>
           </view>
-          <tn-icon name="right" size="32" color="#c7c7cc"></tn-icon>
+          <tn-icon name="right" size="32" :color="isDark ? '#636366' : '#c7c7cc'"></tn-icon>
         </view>
 
         <view class="divider"></view>
@@ -88,7 +88,7 @@
               <text class="item-subtitle">记录时间</text>
             </view>
           </view>
-          <tn-icon name="right" size="32" color="#c7c7cc"></tn-icon>
+          <tn-icon name="right" size="32" :color="isDark ? '#636366' : '#c7c7cc'"></tn-icon>
         </view>
       </view>
     </view>
@@ -123,13 +123,13 @@
             <view class="key" @click="onKeyPress('.')"><text>.</text></view>
             <view class="key" @click="onKeyPress('0')"><text>0</text></view>
             <view class="key" @click="onKeyPress('del')">
-              <tn-icon name="delete" size="44" color="#333"></tn-icon>
+              <tn-icon name="delete" size="44" :color="isDark ? '#f5f5f5' : '#333'"></tn-icon>
             </view>
           </view>
         </view>
         <view class="keyboard-right">
           <view class="key key-collapse" @click="collapseKeyboard">
-            <tn-icon name="down" size="40" color="#333"></tn-icon>
+            <tn-icon name="down" size="40" :color="isDark ? '#f5f5f5' : '#333'"></tn-icon>
           </view>
           <view class="key key-func" @click="onKeyPress('+')"><text>+</text></view>
           <view class="key key-func" @click="onKeyPress('-')"><text>−</text></view>
@@ -249,6 +249,17 @@ import { personalCategoryApi } from '@/api/personal_category'
 import { personalAccountApi } from '@/api/personal_account'
 import { personalTransactionApi } from '@/api/personal_transaction'
 import { getParams } from '@/utils/ayao.js'
+import { isDarkMode, getThemeMode, getThemeVars } from '@/utils/theme'
+
+const isDark = ref(false)
+const isLight = ref(false)
+const themeVars = ref({})
+const refreshTheme = () => {
+  const mode = getThemeMode()
+  isDark.value = mode === 'dark' || (mode === 'system' && isDarkMode())
+  isLight.value = mode === 'light'
+  themeVars.value = getThemeVars()
+}
 
 const editId = ref(null)
 const isEdit = computed(() => !!editId.value)
@@ -358,6 +369,7 @@ const loadData = async () => {
 }
 
 onLoad((options) => {
+  refreshTheme()
   const params = getParams(options)
   if (params?.id) {
     editId.value = Number(params.id)
@@ -561,7 +573,7 @@ const submitMock = async () => {
 
 <style lang="scss" scoped>
 .form-container {
-  background-color: #f6f6f6;
+  background: linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid1) 15%, var(--bg-gradient-mid2) 35%, var(--bg-gradient-mid3) 60%, var(--bg-gradient-end) 85%);
   min-height: 100vh; min-height: 100dvh;
 }
 
@@ -572,7 +584,7 @@ const submitMock = async () => {
   width: 100%;
   height: 88rpx;
   padding: 0 10rpx;
-  background-color: #f6f6f6;
+  background-color: transparent;
 
   .nav-left {
     width: 88rpx;
@@ -597,21 +609,23 @@ const submitMock = async () => {
 .nav-title {
   font-size: 34rpx;
   font-weight: 600;
-  color: #1c1c1e;
+  color: var(--text-primary);
 }
 
 .type-selector {
   padding: 10rpx 30rpx 30rpx 30rpx;
-  background-color: #f6f6f6;
 }
 
 .segmented {
   display: flex;
   position: relative;
-  background: #fff;
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1rpx solid var(--bg-card-border);
   padding: 0 8rpx;
   border-radius: 24rpx;
-  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-card);
 }
 
 .seg-slider {
@@ -620,7 +634,7 @@ const submitMock = async () => {
   left: 8rpx;
   width: calc((100% - 16rpx) / 3);
   height: calc(100% - 16rpx);
-  background: linear-gradient(135deg, #ff6700 0%, #ff8f3d 100%);
+  background: linear-gradient(135deg, var(--color-brand) 0%, #ff8f3d 100%);
   border-radius: 18rpx;
   box-shadow: 0 8rpx 20rpx rgba(255, 103, 0, 0.25);
   transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
@@ -638,7 +652,7 @@ const submitMock = async () => {
   text {
     font-size: 30rpx;
     font-weight: 500;
-    color: #8e8e93;
+    color: var(--text-tertiary);
     transition: color 0.3s ease, font-weight 0.3s ease;
   }
 
@@ -654,13 +668,15 @@ const submitMock = async () => {
 
 .amount-section {
   padding: 0 30rpx 30rpx 30rpx;
-  background-color: #f6f6f6;
 }
 
 .amount-display {
-  background: #fff;
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1rpx solid var(--bg-card-border);
   border-radius: 24rpx;
-  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-card);
   padding: 30rpx 20rpx;
   text-align: center;
 }
@@ -674,33 +690,35 @@ const submitMock = async () => {
 
   .currency {
     font-size: 48rpx;
-    color: #ff6700;
+    color: var(--color-brand);
     font-weight: 600;
   }
 
   .major {
     font-size: 96rpx;
-    color: #ff6700;
+    color: var(--color-brand);
     font-weight: 700;
     letter-spacing: -4rpx;
   }
 
   .minor {
     font-size: 52rpx;
-    color: #ff6700;
+    color: var(--color-brand);
     font-weight: 700;
   }
 }
 
 .info-section {
   padding: 0 30rpx 30rpx 30rpx;
-  background-color: #f6f6f6;
 }
 
 .info-card {
-  background: #fff;
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1rpx solid var(--bg-card-border);
   border-radius: 24rpx;
-  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
@@ -712,7 +730,7 @@ const submitMock = async () => {
   transition: background-color 0.2s ease;
 
   &:active {
-    background-color: #f8f8f8;
+    background-color: var(--bg-input);
   }
 }
 
@@ -735,7 +753,7 @@ const submitMock = async () => {
 
 .account-icon,
 .time-icon {
-  background-color: #f6f6f6;
+  background-color: var(--bg-input);
 }
 
 .item-content {
@@ -747,29 +765,31 @@ const submitMock = async () => {
 .item-title {
   font-size: 32rpx;
   font-weight: 500;
-  color: #1c1c1e;
+  color: var(--text-primary);
 }
 
 .item-subtitle {
   font-size: 26rpx;
-  color: #8e8e93;
+  color: var(--text-tertiary);
 }
 
 .divider {
   height: 1rpx;
-  background: #f5f5f5;
+  background: var(--divider);
   margin: 0 28rpx;
 }
 
 .remark-section {
   padding: 0 30rpx 30rpx 30rpx;
-  background-color: #f6f6f6;
 }
 
 .remark-card {
-  background: #fff;
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1rpx solid var(--bg-card-border);
   border-radius: 24rpx;
-  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-card);
   padding: 4rpx;
 }
 
@@ -779,7 +799,9 @@ const submitMock = async () => {
   left: 0; right: 0; bottom: 0; z-index: 100;
   padding: 12rpx 12rpx 0;
   padding-bottom: env(safe-area-inset-bottom);
-  background-color: #f0f0f0;
+  background: var(--bg-keyboard);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   transform-origin: calc(100% - 90rpx) calc(100% - 80rpx);
   transform: scale(1);
   border-radius: 0;
@@ -799,20 +821,20 @@ const submitMock = async () => {
 .keyboard-right { flex: 1; display: flex; flex-direction: column; }
 .key-row { display: flex; gap: 12rpx; }
 .key {
-  flex: 1; height: 100rpx; background: #fff; border-radius: 18rpx;
+  flex: 1; height: 100rpx; background: var(--bg-key); border-radius: 18rpx;
   display: flex; align-items: center; justify-content: center;
-  font-size: 40rpx; color: #1c1c1e; margin-bottom: 12rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
-  &:active { transform: scale(0.96); background: #e8e8e8; }
+  font-size: 40rpx; color: var(--text-primary); margin-bottom: 12rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+  &:active { transform: scale(0.96); background: var(--bg-input); }
 }
 .key-collapse {
-  background: #fff;
+  background: var(--bg-key);
 }
 .key-func {
-  background: #fff; font-size: 44rpx; font-weight: 600;
+  background: var(--bg-key); font-size: 44rpx; font-weight: 600;
 }
 .key-submit {
-  background: #ff6700; color: #fff; font-size: 30rpx; font-weight: 600;
+  background: var(--color-brand); color: #fff; font-size: 30rpx; font-weight: 600;
   &:active { background: #e55d00; }
 }
 
@@ -821,7 +843,7 @@ const submitMock = async () => {
   position: fixed;
   right: 40rpx; bottom: 60rpx; z-index: 99;
   width: 100rpx; height: 100rpx; border-radius: 50%;
-  background: #ff6700;
+  background: var(--color-brand);
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 8rpx 30rpx rgba(255,103,0,0.4);
   transform: scale(1);
@@ -842,7 +864,7 @@ const submitMock = async () => {
   margin-bottom: 8rpx;
 }
 .expression-text {
-  font-size: 28rpx; color: #8e8e93;
+  font-size: 28rpx; color: var(--text-tertiary);
 }
 
 /* 弹层样式 */
@@ -850,7 +872,7 @@ const submitMock = async () => {
   padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
   border-top-left-radius: 24rpx;
   border-top-right-radius: 24rpx;
-  background-color: #fff;
+  background-color: var(--bg-card-solid);
 }
 
 .popup-header {
@@ -871,7 +893,7 @@ const submitMock = async () => {
 .popup-title {
   font-size: 32rpx;
   font-weight: 600;
-  color: #1c1c1e;
+  color: var(--text-primary);
 }
 
 /* 分类网格 */
@@ -882,7 +904,7 @@ const submitMock = async () => {
 
 .main-category {
   width: 180rpx;
-  background-color: #f6f6f6;
+  background-color: var(--bg-input);
   height: 100%;
 }
 
@@ -894,12 +916,12 @@ const submitMock = async () => {
   gap: 8rpx;
   padding: 24rpx 0;
   font-size: 26rpx;
-  color: #8e8e93;
+  color: var(--text-tertiary);
   transition: all 0.2s ease;
 
   &.active {
-    background-color: #fff;
-    color: #ff6700;
+    background-color: var(--bg-card-solid);
+    color: var(--color-brand);
     font-weight: 600;
   }
 }
@@ -924,7 +946,7 @@ const submitMock = async () => {
 
   text {
     font-size: 26rpx;
-    color: #1c1c1e;
+    color: var(--text-primary);
   }
 }
 
@@ -950,12 +972,12 @@ const submitMock = async () => {
   align-items: center;
   justify-content: space-between;
   padding: 24rpx 20rpx;
-  background: #f6f6f6;
+  background: var(--bg-input);
   border-radius: 20rpx;
   transition: all 0.2s ease;
 
   &:active {
-    background-color: #f0f0f0;
+    background-color: var(--divider);
     transform: scale(0.98);
   }
 }
@@ -985,12 +1007,12 @@ const submitMock = async () => {
 .account-name {
   font-size: 32rpx;
   font-weight: 500;
-  color: #1c1c1e;
+  color: var(--text-primary);
 }
 
 .account-balance {
   font-size: 26rpx;
-  color: #8e8e93;
+  color: var(--text-tertiary);
 }
 
 /* 时间选项 */
@@ -1004,10 +1026,10 @@ const submitMock = async () => {
   display: flex;
   align-items: center;
   padding: 24rpx 20rpx;
-  background: #f6f6f6;
+  background: var(--bg-input);
   border-radius: 20rpx;
   transition: all 0.2s ease;
-  &:active { background-color: #f0f0f0; transform: scale(0.98); }
+  &:active { background-color: var(--divider); transform: scale(0.98); }
 }
 .option-left {
   display: flex;
@@ -1017,7 +1039,7 @@ const submitMock = async () => {
 .option-text {
   font-size: 32rpx;
   font-weight: 500;
-  color: #1c1c1e;
+  color: var(--text-primary);
 }
 
 </style>

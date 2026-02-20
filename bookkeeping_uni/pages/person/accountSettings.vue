@@ -1,8 +1,8 @@
 <template>
-	<view class="settings-container">
+	<view class="settings-container" :style="themeVars">
 		<!-- 通知设置 -->
 		<view class="settings-section">
-			<ay-title title="通知设置" bold></ay-title>
+			<ay-title title="通知设置" bold :color="isDark ? '#f5f5f5' : '#333'"></ay-title>
 			<view class="settings-item">
 				<view class="item-left">
 					<text class="label">每日提醒</text>
@@ -16,14 +16,14 @@
 					<text class="desc">{{ reminderTimeText }}</text>
 				</view>
 				<picker mode="time" :value="reminderTimeText" @change="onTimeChange">
-					<tn-icon name="right" color="#999"></tn-icon>
+					<tn-icon name="right" :color="isDark ? '#636366' : '#999'"></tn-icon>
 				</picker>
 			</view>
 		</view>
 
 		<!-- 隐私设置 -->
 		<view class="settings-section">
-			<ay-title title="隐私设置" bold></ay-title>
+			<ay-title title="隐私设置" bold :color="isDark ? '#f5f5f5' : '#333'"></ay-title>
 			<view class="settings-item">
 				<view class="item-left">
 					<text class="label">金额显示</text>
@@ -42,13 +42,25 @@
 
 		<!-- 其他设置 -->
 		<view class="settings-section">
-			<ay-title title="其他设置" bold></ay-title>
+			<ay-title title="外观设置" bold :color="isDark ? '#f5f5f5' : '#333'"></ay-title>
+			<view class="settings-item" @click="showThemePicker = true">
+				<view class="item-left">
+					<text class="label">外观模式</text>
+					<text class="desc">{{ themeLabel }}</text>
+				</view>
+				<tn-icon name="right" :color="isDark ? '#636366' : '#999'"></tn-icon>
+			</view>
+		</view>
+
+		<!-- 其他设置 -->
+		<view class="settings-section">
+			<ay-title title="其他设置" bold :color="isDark ? '#f5f5f5' : '#333'"></ay-title>
 			<view class="settings-item" @click="clearCache">
 				<view class="item-left">
 					<text class="label">清除缓存</text>
 					<text class="desc">{{ cacheSize }}</text>
 				</view>
-				<tn-icon name="right"></tn-icon>
+				<tn-icon name="right" :color="isDark ? '#636366' : '#999'"></tn-icon>
 			</view>
 			<!-- #ifdef APP -->
 			<view class="settings-item" @click="checkUpdate">
@@ -56,7 +68,7 @@
 					<text class="label">检查更新</text>
 					<text class="desc">当前版本 {{ version }}</text>
 				</view>
-				<tn-icon name="right"></tn-icon>
+				<tn-icon name="right" :color="isDark ? '#636366' : '#999'"></tn-icon>
 			</view>
 			<!-- #endif -->
 		</view>
@@ -77,12 +89,53 @@
 				</view>
 			</view>
 		</view>
+
+		<!-- 主题选择弹层 -->
+		<ay-popup v-model="showThemePicker" position="bottom" :duration="300" draggable show-drag-handle>
+			<view class="popup-content">
+				<view class="popup-header">
+					<text class="popup-title">外观模式</text>
+				</view>
+				<view class="theme-options">
+					<view class="theme-option" :class="{ active: themeMode === 'light' }" @click="selectTheme('light')">
+						<view class="theme-preview light-preview">
+							<tn-icon name="sunny" size="48" color="#ff6700"></tn-icon>
+						</view>
+						<text class="theme-name">明亮</text>
+						<view class="check-icon" v-if="themeMode === 'light'">
+							<tn-icon name="check" size="32" color="#ff6700"></tn-icon>
+						</view>
+					</view>
+					<view class="theme-option" :class="{ active: themeMode === 'dark' }" @click="selectTheme('dark')">
+						<view class="theme-preview dark-preview">
+							<tn-icon name="moon" size="48" color="#ff8533"></tn-icon>
+						</view>
+						<text class="theme-name">暗黑</text>
+						<view class="check-icon" v-if="themeMode === 'dark'">
+							<tn-icon name="check" size="32" color="#ff6700"></tn-icon>
+						</view>
+					</view>
+					<view class="theme-option" :class="{ active: themeMode === 'system' }" @click="selectTheme('system')">
+						<view class="theme-preview system-preview">
+							<view class="system-icon-wrap">
+								<tn-icon name="sunny" size="36" color="#ff6700"></tn-icon>
+								<tn-icon name="moon" size="36" color="#ff8533"></tn-icon>
+							</view>
+						</view>
+						<text class="theme-name">跟随系统</text>
+						<view class="check-icon" v-if="themeMode === 'system'">
+							<tn-icon name="check" size="32" color="#ff6700"></tn-icon>
+						</view>
+					</view>
+				</view>
+			</view>
+		</ay-popup>
 	</view>
 </template>
 
 <script setup>
 	import {
-		onLoad
+		onLoad, onShow
 	} from '@dcloudio/uni-app'
 	import {
 		ref,
@@ -95,6 +148,26 @@
 	import {
 		userApi
 	} from '@/api/user'
+	import { getThemeMode, setThemeMode, isDarkMode, getThemeVars, setNavBarTheme } from '@/utils/theme'
+
+	const showThemePicker = ref(false)
+	const themeMode = ref('system')
+	const themeVars = ref({})
+	const isDark = ref(false)
+
+	const themeLabel = computed(() => {
+		const map = { light: '明亮', dark: '暗黑', system: '跟随系统' }
+		return map[themeMode.value] || '跟随系统'
+	})
+
+	const selectTheme = (mode) => {
+		themeMode.value = mode
+		setThemeMode(mode)
+		isDark.value = mode === 'dark' || (mode === 'system' && isDarkMode())
+		themeVars.value = getThemeVars()
+		setNavBarTheme()
+		showThemePicker.value = false
+	}
 
 	// 设置数据
 	const settings = ref({
@@ -474,21 +547,32 @@
 	onLoad(() => {
 		loadUserSettings()
 		getCacheSize()
+		themeMode.value = getThemeMode()
+		isDark.value = isDarkMode()
+		themeVars.value = getThemeVars()
+		setNavBarTheme()
+	})
+
+	onShow(() => {
+		themeMode.value = getThemeMode()
+		isDark.value = isDarkMode()
+		themeVars.value = getThemeVars()
+		setNavBarTheme()
 	})
 </script>
 
 <style lang="scss">
 	.settings-container {
 		min-height: 100vh; min-height: 100dvh;
-		background-color: #f8f9fc;
+		background-color: var(--bg-page);
 		padding: 20rpx;
 		padding-bottom: calc(env(safe-area-inset-bottom) + 40rpx);
 
 		.settings-section {
-			background-color: #fff;
+			background-color: var(--bg-card-solid);
 			border-radius: 24rpx;
 			margin-bottom: 20rpx;
-			box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+			box-shadow: var(--shadow-card);
 			overflow: hidden;
 
 			.settings-item {
@@ -496,7 +580,7 @@
 				justify-content: space-between;
 				align-items: center;
 				padding: 30rpx;
-				border-bottom: 2rpx solid #f5f5f5;
+				border-bottom: 2rpx solid var(--divider);
 
 				&:last-child {
 					border-bottom: none;
@@ -505,19 +589,19 @@
 				.item-left {
 					.label {
 						font-size: 28rpx;
-						color: #333;
+						color: var(--text-primary);
 						margin-bottom: 8rpx;
 						display: block;
 					}
 
 					.desc {
 						font-size: 24rpx;
-						color: #999;
+						color: var(--text-tertiary);
 					}
 				}
 
 				.iconfont {
-					color: #999;
+					color: var(--text-tertiary);
 					font-size: 32rpx;
 				}
 			}
@@ -528,11 +612,11 @@
 			height: 88rpx;
 			line-height: 88rpx;
 			text-align: center;
-			background: #fff;
+			background: var(--bg-card-solid);
 			border-radius: 44rpx;
-			color: #ff4d4f;
+			color: var(--color-danger);
 			font-size: 32rpx;
-			box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+			box-shadow: var(--shadow-card);
 
 			&:active {
 				opacity: 0.8;
@@ -553,20 +637,20 @@
 
 			.progress-box {
 				width: 80%;
-				background-color: #fff;
+				background-color: var(--bg-card-solid);
 				border-radius: 24rpx;
 				padding: 40rpx;
 
 				.progress-title {
 					font-size: 32rpx;
-					color: #333;
+					color: var(--text-primary);
 					text-align: center;
 					margin-bottom: 30rpx;
 				}
 
 				.progress-bar {
 					height: 40rpx;
-					background-color: #f5f5f5;
+					background-color: var(--bg-input);
 					border-radius: 20rpx;
 					overflow: hidden;
 					position: relative;
@@ -582,7 +666,7 @@
 						display: flex;
 						align-items: center;
 						justify-content: center;
-						min-width: 60rpx; // 确保有足够空间显示文字
+						min-width: 60rpx;
 
 						.progress-text {
 							color: #fff;
@@ -593,5 +677,90 @@
 				}
 			}
 		}
+	}
+
+	.popup-content {
+		padding: 12rpx 30rpx 40rpx;
+		padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+		background-color: var(--bg-card-solid);
+	}
+
+	.popup-header {
+		display: flex;
+		justify-content: center;
+		padding: 0 0 32rpx;
+	}
+
+	.popup-title {
+		font-size: 32rpx;
+		font-weight: 600;
+		color: var(--text-primary);
+	}
+
+	.theme-options {
+		display: flex;
+		justify-content: space-around;
+		padding: 20rpx 0;
+	}
+
+	.theme-option {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 16rpx;
+		padding: 24rpx;
+		border-radius: 20rpx;
+		position: relative;
+		transition: all 0.2s;
+
+		&.active {
+			background: rgba(255, 103, 0, 0.08);
+		}
+
+		&:active {
+			transform: scale(0.96);
+		}
+	}
+
+	.theme-preview {
+		width: 120rpx;
+		height: 120rpx;
+		border-radius: 24rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+
+		&.light-preview {
+			background: linear-gradient(135deg, #fff4ec, #ffeedd);
+			border: 2rpx solid #f0e0d0;
+		}
+
+		&.dark-preview {
+			background: linear-gradient(135deg, #2c2520, #1c1c1e);
+			border: 2rpx solid #3a3a3c;
+		}
+
+		&.system-preview {
+			background: linear-gradient(135deg, #fff4ec 50%, #2c2520 50%);
+			border: 2rpx solid #e0d0c0;
+			overflow: hidden;
+		}
+	}
+
+	.system-icon-wrap {
+		display: flex;
+		align-items: center;
+		gap: 4rpx;
+	}
+
+	.theme-name {
+		font-size: 26rpx;
+		color: var(--text-primary);
+	}
+
+	.check-icon {
+		position: absolute;
+		top: 12rpx;
+		right: 12rpx;
 	}
 </style>

@@ -31,6 +31,21 @@ class PersonalTransactionController extends Controller {
     ctx.success(null, '删除成功');
   }
 
+  async report() {
+    const { ctx } = this;
+    const { type = 'week', date, flow_type = 'expense' } = ctx.query;
+    const d = date || new Date().toISOString().slice(0, 10);
+    const data = await ctx.service.personalTransaction.getReportStats(type, d, flow_type, ctx.state.user.id);
+    ctx.success(data);
+  }
+
+  async recentDays() {
+    const { ctx } = this;
+    const days = parseInt(ctx.query.days) || 3;
+    const data = await ctx.service.personalTransaction.recentDays(days, ctx.state.user.id);
+    ctx.success(data);
+  }
+
   async statistics() {
     const { ctx } = this;
     const { year, month } = ctx.query;

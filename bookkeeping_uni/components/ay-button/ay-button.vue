@@ -114,9 +114,9 @@
 		/* #endif */
 
 		// 默认样式
-		color: #333;
-		background: #fff;
-		border-color: #dcdfe6;
+		color: var(--text-primary, #333);
+		background: var(--bg-card-solid, #fff);
+		border-color: var(--divider, #dcdfe6);
 
 		&:active {
 			opacity: 0.8;

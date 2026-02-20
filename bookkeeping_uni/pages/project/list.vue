@@ -1,13 +1,13 @@
 <template>
-	<view class="project-list">
+	<view class="project-list" :style="themeVars">
 		<!-- 顶部搜索栏 -->
 		<view class="search-bar">
 			<view class="filter-btn" @tap="showStatusFilter">
 				<text>筛选</text>
-				<tn-icon name="filter" size="30" color="#666"></tn-icon>
+				<tn-icon name="filter" size="30" :color="isDark ? '#ababab' : '#666'"></tn-icon>
 			</view>
 			<view class="search-input">
-				<tn-icon name="search" size="40" color="#666"></tn-icon>
+				<tn-icon name="search" size="40" :color="isDark ? '#8e8e93' : '#666'"></tn-icon>
 				<input type="text" v-model="keyword" placeholder="搜索项目名称" @confirm="handleSearch" />
 				<view class="search-btn" @tap="handleSearch">
 					<text>搜索</text>
@@ -74,7 +74,7 @@
 			<view class="filter-popup">
 				<view class="filter-header">
 					<text class="title">项目状态</text>
-					<tn-icon name="close" @click="showFilter = false" size="40" color="#666"></tn-icon>
+					<tn-icon name="close" @click="showFilter = false" size="40" :color="isDark ? '#8e8e93' : '#666'"></tn-icon>
 				</view>
 				<view class="filter-content">
 					<view class="filter-item" v-for="(item, index) in statusOptions" :key="index"
@@ -91,7 +91,8 @@
 <script setup>
 	import {
 		onPullDownRefresh,
-		onReachBottom
+		onReachBottom,
+		onShow
 	} from '@dcloudio/uni-app'
 
 	import {
@@ -106,6 +107,16 @@
 		formatDate,
 		navigateTo
 	} from '@/utils/ayao.js'
+	import { isDarkMode, getThemeMode, getThemeVars, setNavBarTheme } from '@/utils/theme'
+
+	const isDark = ref(false)
+	const themeVars = ref({})
+	const refreshTheme = () => {
+		const mode = getThemeMode()
+		isDark.value = mode === 'dark' || (mode === 'system' && isDarkMode())
+		themeVars.value = getThemeVars()
+		setNavBarTheme()
+	}
 
 	// 状态选项
 	const statusOptions = [{
@@ -270,7 +281,12 @@
 	})
 
 	onMounted(() => {
+		refreshTheme()
 		getList()
+	})
+
+	onShow(() => {
+		refreshTheme()
 	})
 </script>
 
@@ -285,13 +301,12 @@
 		/* #ifdef APP,MP-WEIXIN */
 		height: 100vh; height: 100dvh;
 		/* #endif */
-		background-color: #f8f9fc;
+		background-color: var(--bg-page);
 		position: relative;
 		overflow-y: auto;
 
 		.search-bar {
 			position: fixed;
-			// top: 44px;
 			/* #ifdef APP,MP-WEIXIN */
 			top: 0;
 			/* #endif */
@@ -301,14 +316,14 @@
 			display: flex;
 			align-items: center;
 			padding: 20rpx;
-			background-color: #fff;
-			box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.03);
+			background-color: var(--bg-card-solid);
+			box-shadow: var(--shadow-card);
 
 			.search-input {
 				flex: 1;
 				display: flex;
 				align-items: center;
-				background-color: #f5f5f5;
+				background-color: var(--bg-input);
 				border-radius: 32rpx;
 				padding: 10rpx 20rpx;
 				position: relative;
@@ -317,6 +332,7 @@
 					flex: 1;
 					height: 64rpx;
 					font-size: 28rpx;
+					color: var(--text-primary);
 					margin-left: 10rpx;
 					padding-right: 120rpx;
 				}
@@ -346,14 +362,14 @@
 				align-items: center;
 				padding: 0 20rpx;
 				height: 64rpx;
-				background-color: #f5f5f5;
+				background-color: var(--bg-input);
 				border-radius: 32rpx;
 				margin-right: 10rpx;
 				gap: 8rpx;
 
 				text {
 					font-size: 28rpx;
-					color: #333;
+					color: var(--text-primary);
 				}
 			}
 		}
@@ -364,11 +380,11 @@
 		}
 
 		.project-item {
-			background-color: #fff;
+			background-color: var(--bg-card-solid);
 			border-radius: 24rpx;
 			padding: 30rpx;
 			margin-bottom: 20rpx;
-			box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+			box-shadow: var(--shadow-card);
 			transition: all 0.3s;
 
 			&:active {
@@ -385,7 +401,7 @@
 				.project-name {
 					font-size: 32rpx;
 					font-weight: bold;
-					color: #333;
+					color: var(--text-primary);
 					flex: 1;
 					margin-right: 20rpx;
 				}
@@ -414,7 +430,7 @@
 			}
 
 			.project-info {
-				background-color: #f8f9fc;
+				background-color: var(--bg-input);
 				border-radius: 16rpx;
 				padding: 24rpx;
 				margin-bottom: 20rpx;
@@ -430,13 +446,13 @@
 					.label {
 						width: 140rpx;
 						font-size: 26rpx;
-						color: #666;
+						color: var(--text-secondary);
 					}
 
 					.value {
 						flex: 1;
 						font-size: 26rpx;
-						color: #333;
+						color: var(--text-primary);
 						font-weight: 500;
 					}
 				}
@@ -447,7 +463,7 @@
 				justify-content: flex-end;
 				align-items: center;
 				padding-top: 20rpx;
-				border-top: 2rpx solid #f5f5f5;
+				border-top: 2rpx solid var(--divider);
 				gap: 30rpx;
 
 				.contact {
@@ -459,7 +475,7 @@
 
 					.contact-name {
 						font-size: 26rpx;
-						color: #333;
+						color: var(--text-primary);
 						font-weight: 500;
 						position: relative;
 						padding-right: 20rpx;
@@ -472,13 +488,13 @@
 							transform: translateY(-50%);
 							width: 2rpx;
 							height: 24rpx;
-							background-color: #ddd;
+							background-color: var(--divider);
 						}
 					}
 
 					.contact-phone {
 						font-size: 26rpx;
-						color: #666;
+						color: var(--text-secondary);
 					}
 				}
 
@@ -535,7 +551,7 @@
 
 			text {
 				font-size: 28rpx;
-				color: #999;
+				color: var(--text-tertiary);
 			}
 		}
 
@@ -543,7 +559,7 @@
 			text-align: center;
 			padding: 30rpx 0;
 			font-size: 24rpx;
-			color: #999;
+			color: var(--text-tertiary);
 		}
 
 		.add-btn {
@@ -569,7 +585,7 @@
 		.filter-popup {
 			width: 50vw;
 			height: 100vh; height: 100dvh;
-			background-color: #fff;
+			background-color: var(--bg-card-solid);
 			padding-top: 106px;
 			/* #ifdef APP */
 			padding-top: 62px;
@@ -580,12 +596,12 @@
 				justify-content: space-between;
 				align-items: center;
 				padding: 30rpx;
-				border-bottom: 2rpx solid #f5f5f5;
+				border-bottom: 2rpx solid var(--divider);
 
 				.title {
 					font-size: 32rpx;
 					font-weight: bold;
-					color: #333;
+					color: var(--text-primary);
 				}
 			}
 
@@ -598,10 +614,11 @@
 					align-items: center;
 					padding: 30rpx;
 					transition: all 0.3s;
+					color: var(--text-primary);
 
 					&.active {
 						color: #ff6700;
-						background-color: #fff2e8;
+						background-color: rgba(255, 103, 0, 0.08);
 					}
 
 					text {

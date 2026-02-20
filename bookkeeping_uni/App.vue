@@ -11,6 +11,10 @@
 			// #ifdef APP-PLUS
 			this.schedulePushIfEnabled()
 			// #endif
+			// 监听系统主题变化（跟随系统模式）
+			uni.onThemeChange && uni.onThemeChange((res) => {
+				console.log('[THEME] 系统主题变化:', res.theme)
+			})
 		},
 		onShow: function() {
 			console.log('App Show')
@@ -140,6 +144,84 @@
 
 <style>
 	@import '@/uni_modules/tuniaoui-vue3/index.css';
+
+	:root {
+		--bg-page: #f5f5f5;
+		--bg-gradient-start: #fff4ec;
+		--bg-gradient-mid1: #fff0e5;
+		--bg-gradient-mid2: #ffeedd;
+		--bg-gradient-mid3: #f8f0ea;
+		--bg-gradient-end: #f5f5f5;
+		--bg-card: rgba(255, 255, 255, 0.45);
+		--bg-card-solid: #fff;
+		--bg-card-border: rgba(255, 255, 255, 0.6);
+		--bg-input: #f5f5f5;
+		--bg-keyboard: rgba(245, 240, 235, 0.85);
+		--bg-key: rgba(255, 255, 255, 0.6);
+		--text-primary: #333;
+		--text-secondary: #666;
+		--text-tertiary: #999;
+		--text-placeholder: #ccc;
+		--color-brand: #ff6700;
+		--color-income: #34c759;
+		--color-danger: #ff3b30;
+		--divider: rgba(0, 0, 0, 0.05);
+		--shadow-card: 0 8rpx 32rpx rgba(0, 0, 0, 0.06);
+	}
+
+	@media (prefers-color-scheme: dark) {
+		:root:not(.theme-light) {
+			--bg-page: #1c1c1e;
+			--bg-gradient-start: #2c2520;
+			--bg-gradient-mid1: #252220;
+			--bg-gradient-mid2: #222020;
+			--bg-gradient-mid3: #1e1e1e;
+			--bg-gradient-end: #1c1c1e;
+			--bg-card: rgba(44, 44, 46, 0.65);
+			--bg-card-solid: #2c2c2e;
+			--bg-card-border: rgba(255, 255, 255, 0.08);
+			--bg-input: #3a3a3c;
+			--bg-keyboard: rgba(44, 44, 46, 0.9);
+			--bg-key: rgba(58, 58, 60, 0.8);
+			--text-primary: #f5f5f5;
+			--text-secondary: #ababab;
+			--text-tertiary: #8e8e93;
+			--text-placeholder: #636366;
+			--color-brand: #ff8533;
+			--color-income: #30d158;
+			--color-danger: #ff453a;
+			--divider: rgba(255, 255, 255, 0.08);
+			--shadow-card: 0 8rpx 32rpx rgba(0, 0, 0, 0.3);
+		}
+	}
+
+	.theme-dark {
+		--bg-page: #1c1c1e;
+		--bg-gradient-start: #2c2520;
+		--bg-gradient-mid1: #252220;
+		--bg-gradient-mid2: #222020;
+		--bg-gradient-mid3: #1e1e1e;
+		--bg-gradient-end: #1c1c1e;
+		--bg-card: rgba(44, 44, 46, 0.65);
+		--bg-card-solid: #2c2c2e;
+		--bg-card-border: rgba(255, 255, 255, 0.08);
+		--bg-input: #3a3a3c;
+		--bg-keyboard: rgba(44, 44, 46, 0.9);
+		--bg-key: rgba(58, 58, 60, 0.8);
+		--text-primary: #f5f5f5;
+		--text-secondary: #ababab;
+		--text-tertiary: #8e8e93;
+		--text-placeholder: #636366;
+		--color-brand: #ff8533;
+		--color-income: #30d158;
+		--color-danger: #ff453a;
+		--divider: rgba(255, 255, 255, 0.08);
+		--shadow-card: 0 8rpx 32rpx rgba(0, 0, 0, 0.3);
+	}
+
+	page {
+		background-color: var(--bg-page);
+	}
 
 	::v-deep .uni-tabbar {
 	    display: none;

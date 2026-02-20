@@ -1,5 +1,5 @@
 <template>
-	<view class="about-container">
+	<view class="about-container" :style="themeVars">
 		<!-- 应用信息 -->
 		<view class="app-info">
 			<image class="app-logo" src="/static/logo.png" mode="aspectFill"></image>
@@ -14,7 +14,7 @@
 
 		<!-- 功能介绍 -->
 		<view class="feature-section">
-			<ay-title title="主要功能" bold></ay-title>
+			<ay-title title="主要功能" bold :color="isDark ? '#f5f5f5' : '#333'"></ay-title>
 			<view class="feature-list">
 				<view class="feature-item">
 					<view class="icon-box">
@@ -39,7 +39,7 @@
 				</view>
 				<view class="feature-item">
 					<view class="icon-box">
-						<tn-icon name="category" size="48" color="#ff6700"></tn-icon>
+						<tn-icon name="menu-classify" size="48" color="#ff6700"></tn-icon>
 					</view>
 					<text class="feature-name">分类管理</text>
 					<text class="feature-desc">自定义收支分类</text>
@@ -63,7 +63,7 @@
 
 		<!-- 联系我们 -->
 		<view class="contact-section">
-			<ay-title title="联系我们" bold></ay-title>
+			<ay-title title="联系我们" bold :color="isDark ? '#f5f5f5' : '#333'"></ay-title>
 			<view class="contact-list">
 				<view class="contact-item" @click="copyEmail">
 					<text class="label">邮箱</text>
@@ -85,6 +85,19 @@
 </template>
 
 <script setup>
+	import { ref } from 'vue'
+	import { onShow } from '@dcloudio/uni-app'
+	import { isDarkMode, getThemeVars, setNavBarTheme } from '@/utils/theme'
+
+	const isDark = ref(false)
+	const themeVars = ref({})
+
+	onShow(() => {
+		isDark.value = isDarkMode()
+		themeVars.value = getThemeVars()
+		setNavBarTheme()
+	})
+
 	const copyEmail = () => {
 		uni.setClipboardData({
 			data: '206788568@qq.com'
@@ -101,7 +114,7 @@
 <style lang="scss">
 	.about-container {
 		min-height: 100vh; min-height: 100dvh;
-		background-color: #f8f9fc;
+		background-color: var(--bg-page);
 		padding: 20rpx;
 		padding-bottom: calc(env(safe-area-inset-bottom) + 40rpx);
 
@@ -110,10 +123,10 @@
 			flex-direction: column;
 			align-items: center;
 			padding: 60rpx 0;
-			background-color: #fff;
+			background-color: var(--bg-card-solid);
 			border-radius: 24rpx;
 			margin-bottom: 20rpx;
-			box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+			box-shadow: var(--shadow-card);
 
 			.app-logo {
 				width: 160rpx;
@@ -126,37 +139,37 @@
 			.app-name {
 				font-size: 36rpx;
 				font-weight: bold;
-				color: #333;
+				color: var(--text-primary);
 				margin-bottom: 10rpx;
 			}
 
 			.app-version {
 				font-size: 24rpx;
-				color: #999;
+				color: var(--text-tertiary);
 			}
 		}
 
 		.product-intro {
 			padding: 20rpx;
-			background-color: #fff;
+			background-color: var(--bg-card-solid);
 			border-radius: 24rpx;
 			margin-bottom: 20rpx;
-			box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+			box-shadow: var(--shadow-card);
 			display: flex;
 			justify-content: center;
 
 			.intro-text {
 				font-size: 28rpx;
-				color: #666;
+				color: var(--text-secondary);
 				text-indent: 2em;
 			}
 		}
 
 		.feature-section {
-			background-color: #fff;
+			background-color: var(--bg-card-solid);
 			border-radius: 24rpx;
 			margin-bottom: 20rpx;
-			box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+			box-shadow: var(--shadow-card);
 			overflow: hidden;
 
 			.feature-list {
@@ -166,7 +179,7 @@
 				padding: 0 30rpx 30rpx;
 
 				.feature-item {
-					background-color: #f8f9fc;
+					background-color: var(--bg-input);
 					border-radius: 16rpx;
 					padding: 30rpx;
 					display: flex;
@@ -193,13 +206,13 @@
 					.feature-name {
 						font-size: 28rpx;
 						font-weight: bold;
-						color: #333;
+						color: var(--text-primary);
 						margin-bottom: 8rpx;
 					}
 
 					.feature-desc {
 						font-size: 24rpx;
-						color: #999;
+						color: var(--text-tertiary);
 						text-align: center;
 					}
 				}
@@ -207,10 +220,10 @@
 		}
 
 		.contact-section {
-			background-color: #fff;
+			background-color: var(--bg-card-solid);
 			border-radius: 24rpx;
 			margin-bottom: 20rpx;
-			box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+			box-shadow: var(--shadow-card);
 			overflow: hidden;
 
 			.contact-list {
@@ -221,7 +234,7 @@
 					justify-content: space-between;
 					align-items: center;
 					padding: 30rpx 0;
-					border-bottom: 2rpx solid #f5f5f5;
+					border-bottom: 2rpx solid var(--divider);
 
 					&:last-child {
 						border-bottom: none;
@@ -229,12 +242,12 @@
 
 					.label {
 						font-size: 28rpx;
-						color: #333;
+						color: var(--text-primary);
 					}
 
 					.value {
 						font-size: 28rpx;
-						color: #666;
+						color: var(--text-secondary);
 					}
 
 					&:active {
@@ -251,7 +264,7 @@
 			text {
 				display: block;
 				font-size: 24rpx;
-				color: #999;
+				color: var(--text-tertiary);
 				line-height: 1.8;
 			}
 		}

@@ -3,8 +3,8 @@
       modelValue ? 'ay-switch--active' : '',
       `ay-switch--${size}`
     ]" :style="{
-      backgroundColor: modelValue ? activeColor : inactiveColor,
-      borderColor: modelValue ? activeColor : inactiveColor
+      backgroundColor: modelValue ? activeColor : resolvedInactiveColor,
+      borderColor: modelValue ? activeColor : resolvedInactiveColor
     }" @tap="handleTap">
 		<view class="ay-switch__node" :class="{ 'ay-switch__node--active': modelValue }">
 			<view v-if="loading" class="ay-switch__loading"></view>
@@ -13,6 +13,7 @@
 </template>
 
 <script>
+	import { isDarkMode } from '@/utils/theme'
 	export default {
 		name: "ay-switch",
 		props: {
@@ -26,7 +27,7 @@
 			},
 			inactiveColor: {
 				type: String,
-				default: '#dcdfe6'
+				default: ''
 			},
 			size: {
 				type: String,
@@ -40,6 +41,12 @@
 			disabled: {
 				type: Boolean,
 				default: false
+			}
+		},
+		computed: {
+			resolvedInactiveColor() {
+				if (this.inactiveColor) return this.inactiveColor
+				return isDarkMode() ? '#3a3a3c' : '#dcdfe6'
 			}
 		},
 		methods: {

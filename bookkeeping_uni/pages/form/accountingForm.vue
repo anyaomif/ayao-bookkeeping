@@ -1,5 +1,5 @@
 <template>
-	<view class="container">
+	<view class="container" :style="themeVars">
 		<!-- 切换标签 -->
 		<ay-tabs class="custom-tabs" justify="space-around" v-model="currentTab" :list="tabs"
 			@change="handleTabChange"></ay-tabs>
@@ -13,7 +13,7 @@
 					<view v-for="(option, index) in workOptions" :key="index"
 						:class="['option-item', { active: form.workOption === index }]" @tap="selectWorkOption(index)">
 						<tn-icon :name="getWorkOptionIcon(index)" size="40"
-							:color="form.workOption === index ? '#fff' : '#666'"></tn-icon>
+							:color="form.workOption === index ? '#fff' : (isDark ? '#ababab' : '#666')"></tn-icon>
 						<text :class="{'bold': form.workOption === index && (index === 1 || index === 2)}">
 							{{getWorkOptionLabel(option, index)}}
 						</text>
@@ -80,7 +80,7 @@
 							</view>
 							<view class="upload-btn" @tap="uploadImage" v-if="form.imageList.length < 9">
 								<view class="upload-content">
-									<tn-icon name="camera" color="#999" size="48"></tn-icon>
+									<tn-icon name="camera" :color="isDark ? '#636366' : '#999'" size="48"></tn-icon>
 									<text>上传图片</text>
 								</view>
 							</view>
@@ -141,7 +141,7 @@
 							</view>
 							<view class="upload-btn" @tap="uploadImage" v-if="form.imageList.length < 9">
 								<view class="upload-content">
-									<tn-icon name="camera" color="#999" size="48"></tn-icon>
+									<tn-icon name="camera" :color="isDark ? '#636366' : '#999'" size="48"></tn-icon>
 									<text>上传图片</text>
 								</view>
 							</view>
@@ -193,7 +193,8 @@
 		nextTick
 	} from 'vue';
 	import {
-		onLoad
+		onLoad,
+		onShow
 	} from '@dcloudio/uni-app';
 	import {
 		getParams,
@@ -206,6 +207,15 @@
 	import {
 		uploadApi
 	} from '@/api/upload';
+	import { isDarkMode, getThemeVars, setNavBarTheme } from '@/utils/theme'
+
+	const isDark = ref(false)
+	const themeVars = ref(getThemeVars())
+	const refreshTheme = () => {
+		isDark.value = isDarkMode()
+		themeVars.value = getThemeVars()
+		setNavBarTheme()
+	}
 
 	// 合并表单数据
 	const form = ref({
@@ -523,7 +533,12 @@
 		uni.navigateBack();
 	};
 
+	onShow(() => {
+		refreshTheme()
+	})
+
 	onLoad((option) => {
+		setNavBarTheme()
 		const params = getParams(option);
 
 		// 获取缓存的项目信息
@@ -639,28 +654,28 @@
 <style lang="scss" scoped>
 	.container {
 		min-height: 100vh; min-height: 100dvh;
-		background-color: #f8f9fc;
+		background-color: var(--bg-page);
 		padding: 20rpx;
 		padding-bottom: calc(140rpx + env(safe-area-inset-bottom));
 
 		.custom-tabs {
-			background: #fff;
+			background: var(--bg-card-solid);
 			border-radius: 16rpx;
 			margin-bottom: 20rpx;
-			box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+			box-shadow: var(--shadow-card);
 		}
 
 		.form-card {
-			background: #fff;
+			background: var(--bg-card-solid);
 			border-radius: 16rpx;
 			padding: 30rpx;
 			margin-bottom: 20rpx;
-			box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+			box-shadow: var(--shadow-card);
 
 			.card-title {
 				font-size: 30rpx;
 				font-weight: bold;
-				color: #333;
+				color: var(--text-primary);
 				margin-bottom: 24rpx;
 				display: block;
 			}
@@ -683,14 +698,14 @@
 					align-items: center;
 					justify-content: center;
 					padding: 30rpx;
-					background: #f8f9fc;
+					background: var(--bg-input);
 					border-radius: 12rpx;
 					transition: all 0.3s;
 					gap: 12rpx;
 
 					text {
 						font-size: 28rpx;
-						color: #666;
+						color: var(--text-secondary);
 					}
 
 					.tn-icon {
@@ -718,7 +733,7 @@
 
 					.switch-label {
 						font-size: 28rpx;
-						color: #666;
+						color: var(--text-secondary);
 						transition: all 0.3s;
 
 						&.active {
@@ -729,13 +744,13 @@
 				}
 
 				.overtime-input {
-					background: #f8f9fc;
+					background: var(--bg-input);
 					border-radius: 12rpx;
 					padding: 20rpx;
 
 					.unit {
 						font-size: 26rpx;
-						color: #666;
+						color: var(--text-secondary);
 						margin-left: 8rpx;
 					}
 				}
@@ -750,13 +765,13 @@
 
 					.upload-title {
 						font-size: 28rpx;
-						color: #333;
+						color: var(--text-primary);
 						font-weight: 500;
 					}
 
 					.upload-desc {
 						font-size: 24rpx;
-						color: #999;
+						color: var(--text-tertiary);
 					}
 				}
 
@@ -797,7 +812,7 @@
 						position: relative;
 						width: 100%;
 						padding-bottom: 100%;
-						background: #f8f9fc;
+						background: var(--bg-input);
 						border-radius: 12rpx;
 
 						.upload-content {
@@ -815,7 +830,7 @@
 
 						text {
 							font-size: 24rpx;
-							color: #999;
+							color: var(--text-tertiary);
 						}
 
 						&:active {
@@ -826,53 +841,16 @@
 			}
 		}
 
-		.bottom-btn-area {
-			position: fixed;
-			bottom: 0;
-			left: 0;
-			right: 0;
-			padding: 20rpx 30rpx;
-			padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
-			background: rgba(255, 255, 255, 0.9);
-			backdrop-filter: blur(10px);
-			-webkit-backdrop-filter: blur(10px);
-
-			.submit-btn {
-				height: 88rpx;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				gap: 12rpx;
-				background: linear-gradient(135deg, #ff6700, #ff8c3f);
-				border-radius: 44rpx;
-				color: #fff;
-				font-size: 32rpx;
-				font-weight: 500;
-				box-shadow: 0 4rpx 16rpx rgba(255, 103, 0, 0.3);
-				transition: all 0.3s;
-
-				&:active {
-					transform: translateY(2rpx);
-					opacity: 0.9;
-				}
-
-				&.disabled {
-					background: #ccc;
-					box-shadow: none;
-				}
-			}
-		}
-
 		.contract-section {
 			.form-card {
 				.amount-input {
-					background: #f8f9fc;
+					background: var(--bg-input);
 					border-radius: 12rpx;
 					padding: 20rpx;
 
 					.unit {
 						font-size: 26rpx;
-						color: #666;
+						color: var(--text-secondary);
 						margin-left: 8rpx;
 					}
 				}
@@ -887,19 +865,19 @@
 
 	.other-input-popup {
 		width: 600rpx;
-		background-color: #fff;
+		background-color: var(--bg-card-solid);
 		border-radius: 24rpx;
 		overflow: hidden;
 
 		.popup-header {
 			padding: 30rpx;
 			text-align: center;
-			border-bottom: 2rpx solid #f5f5f5;
+			border-bottom: 2rpx solid var(--divider);
 
 			.title {
 				font-size: 32rpx;
 				font-weight: bold;
-				color: #333;
+				color: var(--text-primary);
 			}
 		}
 
@@ -909,7 +887,7 @@
 
 		.popup-footer {
 			display: flex;
-			border-top: 2rpx solid #f5f5f5;
+			border-top: 2rpx solid var(--divider);
 
 			.btn {
 				flex: 1;
@@ -920,8 +898,8 @@
 				font-size: 30rpx;
 
 				&.cancel {
-					color: #666;
-					background-color: #f5f5f5;
+					color: var(--text-secondary);
+					background-color: var(--bg-input);
 				}
 
 				&.confirm {
@@ -943,10 +921,8 @@
 		right: 0;
 		padding: 20rpx 30rpx;
 		padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
-		background: rgba(255, 255, 255, 0.95);
-		backdrop-filter: blur(10px);
-		-webkit-backdrop-filter: blur(10px);
-		box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.05);
+		background: var(--bg-card-solid);
+		box-shadow: var(--shadow-card);
 
 		.btn1 {
 			width: 90vw;
@@ -969,7 +945,7 @@
 				flex-direction: column;
 				align-items: center;
 				justify-content: center;
-				background: #fff;
+				background: var(--bg-card-solid);
 				border: 2rpx solid #ff4d4f;
 				border-radius: 16rpx;
 				gap: 4rpx;

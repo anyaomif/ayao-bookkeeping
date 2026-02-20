@@ -102,7 +102,7 @@
 		display: flex;
 		align-items: center;
 		width: 100%;
-		background-color: #fff;
+		background-color: transparent;
 
 		// 普通模式
 		&--normal {
@@ -131,7 +131,7 @@
 		&--border {
 			.ay-title__content {
 				flex: 1;
-				border-bottom: 2rpx solid #f5f5f5;
+				border-bottom: 2rpx solid var(--divider, #f5f5f5);
 			}
 		}
 

@@ -181,14 +181,14 @@
 		&__drag-handle {
 			width: 80rpx;
 			height: 8rpx;
-			background-color: #dcdcdc;
+			background-color: var(--text-placeholder, #dcdcdc);
 			border-radius: 4rpx;
 			margin: 16rpx auto;
 		}
 
 		&__content {
 			position: absolute;
-			background-color: #fff;
+			background-color: var(--bg-card-solid, #fff);
 			overflow: hidden;
 
 			&--no-animation { transition: none !important; }

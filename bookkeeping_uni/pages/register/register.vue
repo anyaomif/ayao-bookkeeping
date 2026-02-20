@@ -1,32 +1,32 @@
 <template>
-	<view class="register-container">
+	<view class="register-container" :style="themeVars">
 		<view class="form-box">
 			<view class="input-item">
 				<tn-icon name="my" class="iconfont" size="48" color="#ff6700"></tn-icon>
-				<input type="text" v-model="formData.username" placeholder="请输入用户名" placeholder-class="placeholder" />
+				<input type="text" v-model="formData.username" placeholder="请输入用户名" :placeholder-style="isDark ? 'color:#636366' : 'color:#999'" />
 			</view>
 
 			<view class="input-item">
 				<tn-icon name="lock" class="iconfont" size="48" color="#ff6700"></tn-icon>
 				<input :type="showPassword ? 'text' : 'password'" v-model="formData.password" placeholder="请输入密码"
-					placeholder-class="placeholder" />
+					:placeholder-style="isDark ? 'color:#636366' : 'color:#999'" />
 				<tn-icon :name="showPassword ? 'eye-close' : 'eye-hide'" class="iconfont" size="48"
-					@tap="togglePassword"></tn-icon>
+					:color="isDark ? '#8e8e93' : '#999'" @tap="togglePassword"></tn-icon>
 			</view>
 
 			<view class="input-item">
 				<tn-icon name="phone" class="iconfont" size="48" color="#ff6700"></tn-icon>
-				<input type="number" v-model="formData.phone" placeholder="请输入手机号" placeholder-class="placeholder" maxlength="11" />
+				<input type="number" v-model="formData.phone" placeholder="请输入手机号" :placeholder-style="isDark ? 'color:#636366' : 'color:#999'" maxlength="11" />
 			</view>
 
 			<view class="input-item">
 				<tn-icon name="identity" class="iconfont" size="48" color="#ff6700"></tn-icon>
-				<input type="text" v-model="formData.nickname" placeholder="请输入昵称" placeholder-class="placeholder" />
+				<input type="text" v-model="formData.nickname" placeholder="请输入昵称" :placeholder-style="isDark ? 'color:#636366' : 'color:#999'" />
 			</view>
 
 			<view class="input-item">
 				<tn-icon name="safe" class="iconfont" size="48" color="#ff6700"></tn-icon>
-				<input type="text" v-model="formData.captcha" placeholder="请输入验证码" placeholder-class="placeholder"
+				<input type="text" v-model="formData.captcha" placeholder="请输入验证码" :placeholder-style="isDark ? 'color:#636366' : 'color:#999'"
 					maxlength="4" />
 				<view class="captcha-box" @tap="refreshCaptcha">
 					<view class="captcha-wrap">
@@ -62,6 +62,17 @@
 	import {
 		userApi
 	} from '@/api/user.js'
+	import { onShow } from '@dcloudio/uni-app'
+	import { isDarkMode, getThemeVars, setNavBarTheme } from '@/utils/theme'
+
+	const isDark = ref(isDarkMode())
+	const themeVars = ref(getThemeVars())
+
+	onShow(() => {
+		isDark.value = isDarkMode()
+		themeVars.value = getThemeVars()
+		setNavBarTheme()
+	})
 
 	const formData = reactive({
 		username: '',
@@ -215,7 +226,7 @@
 	.register-container {
 		min-height: 100vh; min-height: 100dvh;
 		padding: 0 60rpx;
-		background-color: #fff;
+		background-color: var(--bg-page);
 
 		.form-box {
 			.input-item {
@@ -225,23 +236,19 @@
 				height: 100rpx;
 				margin-bottom: 30rpx;
 				padding: 0 30rpx;
-				background-color: #f8f8f8;
+				background-color: var(--bg-input);
 				border-radius: 50rpx;
 
 				.iconfont {
 					margin-right: 20rpx;
 					font-size: 40rpx;
-					color: #999;
 				}
 
 				input {
 					flex: 1;
 					height: 100%;
 					font-size: 28rpx;
-				}
-
-				.placeholder {
-					color: #999;
+					color: var(--text-primary);
 				}
 
 				.captcha-box {
@@ -331,7 +338,7 @@
 			margin-top: 40rpx;
 			text-align: center;
 			font-size: 26rpx;
-			color: #666;
+			color: var(--text-secondary);
 
 			.login-link {
 				color: #ff6700;

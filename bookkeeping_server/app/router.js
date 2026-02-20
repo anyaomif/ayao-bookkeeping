@@ -66,12 +66,14 @@ module.exports = app => {
   router.delete('/api/personal/categories/:id', jwt, controller.personalCategory.destroy);
 
   // 交易
+  router.get('/api/personal/transactions/recent', jwt, controller.personalTransaction.recentDays);
   router.post('/api/personal/transactions', jwt, controller.personalTransaction.create);
   router.get('/api/personal/transactions', jwt, controller.personalTransaction.index);
   router.get('/api/personal/transactions/:id', jwt, controller.personalTransaction.show);
   router.put('/api/personal/transactions/:id', jwt, controller.personalTransaction.update);
   router.delete('/api/personal/transactions/:id', jwt, controller.personalTransaction.destroy);
   router.get('/api/personal/statistics', jwt, controller.personalTransaction.statistics);
+  router.get('/api/personal/statistics/report', jwt, controller.personalTransaction.report);
   router.get('/api/personal/statistics/user-stats', jwt, controller.personalTransaction.userStats);
 
   // AI智能记账

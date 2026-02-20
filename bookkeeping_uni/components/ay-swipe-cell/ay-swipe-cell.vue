@@ -163,7 +163,7 @@ defineExpose({ open, close, closeAll });
 	overflow: hidden;
 
 	&.has-border {
-		border-bottom: 1rpx solid #f5f5f5;
+		border-bottom: 1rpx solid rgba(0, 0, 0, 0.05);
 	}
 
 	&:last-child.has-border {
@@ -184,7 +184,7 @@ defineExpose({ open, close, closeAll });
 .cell-content {
 	position: relative;
 	z-index: 1;
-	background: #fff;
+	background: var(--bg-card-solid);
 	transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
 	&.no-transition {
@@ -202,6 +202,6 @@ defineExpose({ open, close, closeAll });
 	align-items: center;
 	justify-content: center;
 	gap: 20rpx;
-	background-color: #f2f2f2;
+	background-color: var(--bg-card-border);
 }
 </style>
