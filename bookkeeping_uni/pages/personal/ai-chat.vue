@@ -180,11 +180,11 @@ import { userApi } from '@/api/user';
 import { personalCategoryApi } from '@/api/personal_category';
 import { personalAccountApi } from '@/api/personal_account';
 import { baseUrl } from '@/utils/ayao';
-import { isDarkMode, getThemeVars } from '@/utils/theme';
+import { isDarkMode, getThemeVars, setPageBgColor } from '@/utils/theme';
 
 const isDark = ref(false);
 const themeVars = ref({});
-const refreshTheme = () => { isDark.value = isDarkMode(); themeVars.value = getThemeVars(); };
+const refreshTheme = () => { isDark.value = isDarkMode(); themeVars.value = getThemeVars(); setPageBgColor(); };
 
 const inputText = ref('');
 const loading = ref(false);

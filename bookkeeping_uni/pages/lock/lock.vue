@@ -16,9 +16,10 @@
 <script setup>
 import { ref } from 'vue';
 import { onLoad, onBackPress } from '@dcloudio/uni-app';
-import { getThemeVars } from '@/utils/theme';
+import { getThemeVars, setPageBgColor } from '@/utils/theme';
 
 const themeVars = ref(getThemeVars());
+setPageBgColor();
 
 onBackPress(() => true);
 

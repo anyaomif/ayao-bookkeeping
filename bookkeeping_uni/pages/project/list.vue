@@ -70,11 +70,10 @@
 		</view>
 
 		<!-- 状态筛选弹窗 -->
-		<ay-popup v-model="showFilter" position="left" :z-index="1">
+		<ay-popup v-model="showFilter" position="bottom" :duration="300" draggable show-drag-handle>
 			<view class="filter-popup">
 				<view class="filter-header">
 					<text class="title">项目状态</text>
-					<tn-icon name="close" @click="showFilter = false" size="40" :color="isDark ? '#8e8e93' : '#666'"></tn-icon>
 				</view>
 				<view class="filter-content">
 					<view class="filter-item" v-for="(item, index) in statusOptions" :key="index"
@@ -291,19 +290,23 @@
 </script>
 
 <style lang="scss" scoped>
-	page {
-		max-height: 100vh; max-height: 100dvh;
-		overflow: hidden;
-	}
-
 	.project-list {
-		height: calc(100vh - 44px); height: calc(100dvh - 44px);
-		/* #ifdef APP,MP-WEIXIN */
-		height: 100vh; height: 100dvh;
-		/* #endif */
+		min-height: 100vh; min-height: 100dvh;
 		background-color: var(--bg-page);
 		position: relative;
-		overflow-y: auto;
+		padding-bottom: calc(env(safe-area-inset-bottom) + 120rpx);
+
+		// 兜底：覆盖底部安全区域，防止原生 page 背景色露出
+		&::after {
+			content: '';
+			position: fixed;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			height: env(safe-area-inset-bottom);
+			background-color: var(--bg-page);
+			z-index: 999;
+		}
 
 		.search-bar {
 			position: fixed;
@@ -583,46 +586,46 @@
 		}
 
 		.filter-popup {
-			width: 50vw;
-			height: 100vh; height: 100dvh;
+			padding: 12rpx 30rpx 40rpx;
+			padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
 			background-color: var(--bg-card-solid);
-			padding-top: 106px;
-			/* #ifdef APP */
-			padding-top: 62px;
-			/* #endif */
 
 			.filter-header {
 				display: flex;
-				justify-content: space-between;
-				align-items: center;
-				padding: 30rpx;
-				border-bottom: 2rpx solid var(--divider);
+				justify-content: center;
+				padding: 0 0 24rpx;
 
 				.title {
 					font-size: 32rpx;
-					font-weight: bold;
+					font-weight: 600;
 					color: var(--text-primary);
 				}
 			}
 
 			.filter-content {
-				padding: 20rpx 0;
+				display: flex;
+				flex-direction: column;
+				gap: 8rpx;
 
 				.filter-item {
 					display: flex;
 					justify-content: space-between;
 					align-items: center;
-					padding: 30rpx;
-					transition: all 0.3s;
+					padding: 28rpx 24rpx;
+					border-radius: 20rpx;
+					transition: all 0.2s;
 					color: var(--text-primary);
+					font-size: 30rpx;
+					background: var(--bg-input);
 
 					&.active {
 						color: #ff6700;
 						background-color: rgba(255, 103, 0, 0.08);
+						font-weight: 500;
 					}
 
-					text {
-						font-size: 30rpx;
+					&:active {
+						opacity: 0.8;
 					}
 				}
 			}

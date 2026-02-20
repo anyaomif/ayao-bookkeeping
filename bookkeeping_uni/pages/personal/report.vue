@@ -123,7 +123,7 @@
 import { ref, computed } from 'vue';
 import { onShow, onPageScroll } from '@dcloudio/uni-app';
 import { personalTransactionApi } from '@/api/personal_transaction';
-import { isDarkMode, getThemeMode, getThemeVars } from '@/utils/theme';
+import { isDarkMode, getThemeMode, getThemeVars, setPageBgColor } from '@/utils/theme';
 
 const isDark = ref(false);
 const isLight = ref(false);
@@ -133,6 +133,7 @@ const refreshTheme = () => {
 	isDark.value = mode === 'dark' || (mode === 'system' && isDarkMode());
 	isLight.value = mode === 'light';
 	themeVars.value = getThemeVars();
+	setPageBgColor();
 };
 
 const dimension = ref('week');

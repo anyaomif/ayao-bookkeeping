@@ -48,10 +48,11 @@
 	import { personalCategoryApi } from '@/api/personal_category';
 	import { personalAccountApi } from '@/api/personal_account';
 	import { userApi } from '@/api/user';
-	import { isDarkMode, getThemeVars } from '@/utils/theme';
+	import { isDarkMode, getThemeVars, setPageBgColor } from '@/utils/theme';
 
 	const isDark = ref(isDarkMode());
 	const themeVars = ref(getThemeVars());
+	setPageBgColor();
 	const fromPerson = ref(false);
 
 	onLoad((options) => {

@@ -138,11 +138,11 @@
 import { ref, computed } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { personalCategoryApi } from '@/api/personal_category';
-import { isDarkMode, getThemeVars } from '@/utils/theme';
+import { isDarkMode, getThemeVars, setPageBgColor } from '@/utils/theme';
 
 const isDark = ref(false);
 const themeVars = ref({});
-const refreshTheme = () => { isDark.value = isDarkMode(); themeVars.value = getThemeVars(); };
+const refreshTheme = () => { isDark.value = isDarkMode(); themeVars.value = getThemeVars(); setPageBgColor(); };
 
 const currentType = ref('expense');
 const typeIndex = computed(() => ({ expense: 0, income: 1, transfer: 2 }[currentType.value] || 0));

@@ -104,11 +104,11 @@
 import { ref, computed, reactive } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { personalAccountApi } from '@/api/personal_account';
-import { isDarkMode, getThemeVars } from '@/utils/theme';
+import { isDarkMode, getThemeVars, setPageBgColor } from '@/utils/theme';
 
 const isDark = ref(false);
 const themeVars = ref({});
-const refreshTheme = () => { isDark.value = isDarkMode(); themeVars.value = getThemeVars(); };
+const refreshTheme = () => { isDark.value = isDarkMode(); themeVars.value = getThemeVars(); setPageBgColor(); };
 
 const showPopup = ref(false);
 const popupMode = ref('add');

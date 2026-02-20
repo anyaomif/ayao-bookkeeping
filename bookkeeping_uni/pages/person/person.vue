@@ -118,7 +118,7 @@
 		baseUrl,
 		formatNumber
 	} from '@/utils/ayao.js'
-	import { isDarkMode, getThemeMode, getThemeVars } from '@/utils/theme'
+	import { isDarkMode, getThemeMode, getThemeVars, setPageBgColor } from '@/utils/theme'
 
 	const isDark = ref(false)
 	const isLight = ref(false)
@@ -128,6 +128,7 @@
 		isDark.value = mode === 'dark' || (mode === 'system' && isDarkMode())
 		isLight.value = mode === 'light'
 		themeVars.value = getThemeVars()
+		setPageBgColor()
 	}
 
 	const userInfo = ref({

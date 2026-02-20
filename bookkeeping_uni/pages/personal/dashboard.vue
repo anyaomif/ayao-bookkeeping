@@ -167,7 +167,7 @@
 import { ref, computed } from 'vue';
 import { onShow, onPageScroll } from '@dcloudio/uni-app';
 import { personalTransactionApi } from '@/api/personal_transaction';
-import { isDarkMode, getThemeMode, getThemeVars } from '@/utils/theme';
+import { isDarkMode, getThemeMode, getThemeVars, setPageBgColor } from '@/utils/theme';
 
 const isDark = ref(false);
 const isLight = ref(false);
@@ -177,6 +177,7 @@ const refreshTheme = () => {
 	isDark.value = mode === 'dark' || (mode === 'system' && isDarkMode());
 	isLight.value = mode === 'light';
 	themeVars.value = getThemeVars();
+	setPageBgColor();
 };
 
 const currentYear = ref(new Date().getFullYear());
@@ -429,13 +430,13 @@ onShow(() => {
 		.amount-value {
 			font-size: 72rpx;
 			font-weight: bold;
-			color: var(--text-primary);
+			color: var(--color-brand);
 		}
 
 		.amount-decimal {
 			font-size: 40rpx;
 			font-weight: bold;
-			color: var(--text-primary);
+			color: var(--color-brand);
 			margin-left: 4rpx;
 		}
 	}

@@ -249,7 +249,7 @@ import { personalCategoryApi } from '@/api/personal_category'
 import { personalAccountApi } from '@/api/personal_account'
 import { personalTransactionApi } from '@/api/personal_transaction'
 import { getParams } from '@/utils/ayao.js'
-import { isDarkMode, getThemeMode, getThemeVars } from '@/utils/theme'
+import { isDarkMode, getThemeMode, getThemeVars, setPageBgColor } from '@/utils/theme'
 
 const isDark = ref(false)
 const isLight = ref(false)
@@ -259,6 +259,7 @@ const refreshTheme = () => {
   isDark.value = mode === 'dark' || (mode === 'system' && isDarkMode())
   isLight.value = mode === 'light'
   themeVars.value = getThemeVars()
+  setPageBgColor()
 }
 
 const editId = ref(null)

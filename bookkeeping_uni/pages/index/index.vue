@@ -189,7 +189,7 @@
 	import {
 		projectApi
 	} from '@/api/project.js'
-	import { isDarkMode, getThemeMode, getThemeVars } from '@/utils/theme'
+	import { isDarkMode, getThemeMode, getThemeVars, setPageBgColor } from '@/utils/theme'
 
 	const isDark = ref(false)
 	const themeVars = ref({})
@@ -197,6 +197,7 @@
 		const mode = getThemeMode()
 		isDark.value = mode === 'dark' || (mode === 'system' && isDarkMode())
 		themeVars.value = getThemeVars()
+		setPageBgColor()
 	}
 
 	const isLoading = ref(true)

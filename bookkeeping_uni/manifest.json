@@ -11,6 +11,12 @@
 		"usingComponents": true,
 		"nvueStyleCompiler": "uni-app",
 		"compilerVersion": 3,
+		"screenOrientation": ["portrait-primary"],
+		"safearea": {
+			"bottom": {
+				"offset": "none"
+			}
+		},
 		"splashscreen": {
 			"alwaysShowBeforeRender": true,
 			"waiting": false,
@@ -102,15 +108,6 @@
 			"postcss": true
 		},
 		"usingComponents": true
-	},
-	"app-plus": {
-		"safearea": {
-			//安全区域配置，仅iOS平台生效  
-			"bottom": {
-				// 底部安全区域配置  
-				"offset": "none" // 底部安全区域偏移，"none"表示不空出安全区域，"auto"自动计算空出安全区域，默认值为"none"  
-			}
-		}
 	},
 	"mp-alipay": {
 		"usingComponents": true

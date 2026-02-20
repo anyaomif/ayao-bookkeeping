@@ -42,10 +42,11 @@
 	import {
 		userApi
 	} from '@/api/user.js'
-	import { isDarkMode, getThemeVars } from '@/utils/theme'
+	import { isDarkMode, getThemeVars, setPageBgColor } from '@/utils/theme'
 
 	const isDark = ref(isDarkMode())
 	const themeVars = ref(getThemeVars())
+	setPageBgColor()
 	
 	onLoad(() => {
 		const token = uni.getStorageSync('token')

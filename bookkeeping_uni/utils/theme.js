@@ -55,7 +55,20 @@ export function getThemeVars() {
   return isDarkMode() ? { ...DARK_VARS } : {}
 }
 
-// 动态设置原生导航栏颜色（用于非 custom 导航栏的页面）
+// 动态设置原生 page 背景色（影响安全区域、下拉背景等）
+export function setPageBgColor() {
+  const dark = isDarkMode()
+  const bg = dark ? '#1c1c1e' : '#f5f5f5'
+  try {
+    uni.setBackgroundColor({
+      backgroundColor: bg,
+      backgroundColorTop: bg,
+      backgroundColorBottom: bg,
+    })
+  } catch (e) {}
+}
+
+// 动态设置原生导航栏颜色 + page 背景色
 export function setNavBarTheme() {
   const dark = isDarkMode()
   uni.setNavigationBarColor({
@@ -63,4 +76,5 @@ export function setNavBarTheme() {
     backgroundColor: dark ? '#1c1c1e' : '#ffffff',
     animation: { duration: 0 }
   })
+  setPageBgColor()
 }
