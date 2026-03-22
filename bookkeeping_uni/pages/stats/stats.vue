@@ -28,22 +28,33 @@
 			</view>
 		</view>
 
+		<!-- 统计加载中 -->
+		<view v-if="statsLoading" class="stats-loading-mask">
+			<text class="stats-loading-text">加载中...</text>
+		</view>
+
 		<!-- 总收入卡片 -->
 		<view class="total-income" @tap="toggleAmountDisplay">
 			<text class="income-title">总收入（元）</text>
 			<view class="income-amount">¥{{ isAmountHidden ? '********' : formatNumber(totalIncome) }}</view>
 			<view class="income-compare">
-				较上月
-				<text :class="['percent', monthCompare >= 0 ? 'up' : 'down']">
-					{{ monthCompare >= 0 ? '+' : '' }}{{ isAmountHidden ? '**' : monthCompare }}%
-				</text>
+				<template v-if="totalIncome > 0">
+					较上期
+					<text :class="['percent', monthCompare >= 0 ? 'up' : 'down']" v-if="monthCompare !== -100">
+						{{ monthCompare >= 0 ? '+' : '' }}{{ isAmountHidden ? '**' : monthCompare }}%
+					</text>
+					<text class="percent neutral" v-else>
+						暂无对比
+					</text>
+				</template>
+				<text class="percent neutral" v-else>暂无数据</text>
 			</view>
 		</view>
 
 		<!-- 收入构成 -->
 		<view class="chart-section">
 			<ay-title title="收入构成" bold padding="0" class="title" :color="isDark ? '#f5f5f5' : '#333'"></ay-title>
-			<view class="composition-chart" style="position: relative;">
+			<view class="composition-chart" style="position: relative; min-height: 300rpx;">
 				<ay-ring-chart v-if="hasIncomeData" :series="pieSeriesData" :total="totalIncome" :size="300" :ringWidth="50" />
 				<view v-else class="empty-chart-overlay">暂无收入数据</view>
 			</view>
@@ -66,20 +77,20 @@
 		<!-- 收入趋势 -->
 		<view class="chart-section">
 			<ay-title title="收入趋势" bold padding="0" class="title" :color="isDark ? '#f5f5f5' : '#333'"></ay-title>
-			<view class="trend-chart" style="position: relative;">
+			<view class="trend-chart" style="position: relative; min-height: 400rpx;">
 				<ay-area-chart v-if="hasDailyData" :categories="trendCategories" :series="trendSeries"
 					:height="400" :stepWidth="100" />
-				<view v-else class="empty-chart-overlay" style="height: 400rpx;">暂无趋势数据</view>
+				<view v-else class="empty-chart-overlay">暂无趋势数据</view>
 			</view>
 		</view>
 
 		<!-- 工作状态分析 -->
 		<view class="chart-section">
 			<ay-title title="工作状态分析" bold padding="0" class="title" :color="isDark ? '#f5f5f5' : '#333'"></ay-title>
-			<view class="status-chart" style="position: relative;">
+			<view class="status-chart" style="position: relative; min-height: 320rpx;">
 				<ay-pie-chart v-if="hasWorkStatusData" :series="workStatusData" :size="320"
 					:colors="['#ff6700', '#52c41a', '#1890ff']" />
-				<view v-else class="empty-chart-overlay" style="height: 320rpx;">暂无工作数据</view>
+				<view v-else class="empty-chart-overlay">暂无工作数据</view>
 			</view>
 		</view>
 
@@ -293,9 +304,12 @@
 	}
 
 	// 加载统计数据
+	const statsLoading = ref(false)
 	const loadStatistics = async () => {
 		if (!currentProject.value.id || !startDate.value || !endDate.value) return
+		if (statsLoading.value) return
 
+		statsLoading.value = true
 		try {
 			const params = {
 				project_id: currentProject.value.id,
@@ -317,6 +331,8 @@
 				title: '获取统计数据失败',
 				icon: 'none'
 			})
+		} finally {
+			statsLoading.value = false
 		}
 	}
 
@@ -335,18 +351,9 @@
 		totalContractIncome.value = data.statistics.contract_income
 		overtimeIncome.value = data.statistics.overtime_income
 
-		// 获取本月收入数据
-		const currentMonthData = data.statistics.daily_income.reduce((acc, curr) => {
-			acc.point += curr.point_income
-			acc.contract += curr.contract_income
-			return acc
-		}, {
-			point: 0,
-			contract: 0
-		})
-
-		monthlyPointIncome.value = currentMonthData.point
-		monthlyContractIncome.value = currentMonthData.contract
+		// 直接使用服务端已聚合的总量，无需本地 reduce
+		monthlyPointIncome.value = data.statistics.point_income
+		monthlyContractIncome.value = data.statistics.contract_income
 	}
 
 	// 判断是否需要按月聚合（本年 或 自定义跨度>60天）
@@ -498,11 +505,18 @@
 		// #endif
 	})
 
+	let lastLoadTime = 0
+	const CACHE_TTL = 30 * 1000 // 30秒内不重复请求
+
 	onShow(() => {
 		refreshTheme()
 		loadUserSettings()
 		if (!isLoading.value) {
-			initData()
+			const now = Date.now()
+			if (now - lastLoadTime > CACHE_TTL) {
+				lastLoadTime = now
+				loadStatistics()
+			}
 		}
 	})
 
@@ -521,6 +535,17 @@
 </script>
 
 <style lang="scss" scoped>
+	.stats-loading-mask {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 40rpx;
+		.stats-loading-text {
+			font-size: 28rpx;
+			color: var(--text-secondary);
+		}
+	}
+
 	.stats-container {
 		min-height: 100vh; min-height: 100dvh;
 		background-color: var(--bg-page);
@@ -671,6 +696,11 @@
 
 					&.down {
 						background: rgba(255, 35, 49, 0.5);
+						color: #fff;
+					}
+
+					&.neutral {
+						background: rgba(255, 255, 255, 0.2);
 						color: #fff;
 					}
 				}

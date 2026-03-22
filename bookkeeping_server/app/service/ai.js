@@ -1,16 +1,16 @@
 const { Service } = require('egg');
-const https = require('https');
+const http = require('http');
 
 class AiService extends Service {
   async getPromptContext(userId) {
-    const [categories, accounts] = await Promise.all([
+    const [ categories, accounts ] = await Promise.all([
       this.ctx.model.PersonalCategory.findAll({
         where: { user_id: userId },
-        attributes: ['id', 'name', 'type', 'parent_id'],
+        attributes: [ 'id', 'name', 'type', 'parent_id' ],
       }),
       this.ctx.model.PersonalAccount.findAll({
         where: { user_id: userId },
-        attributes: ['id', 'name'],
+        attributes: [ 'id', 'name' ],
       }),
     ]);
 
@@ -115,13 +115,16 @@ class AiService extends Service {
 - 如果是纯闲聊问候，正常回复不输出JSON`;
   }
 
-  // SSE流式调用智谱API，通过回调逐块输出
+  // SSE流式调用OpenAI兼容API，通过回调逐块输出
   streamChat(systemPrompt, userMessage, onChunk, onEnd, onError) {
-    const apiKey = process.env.ZHIPU_API_KEY;
-    if (!apiKey) { onError(new Error('ZHIPU_API_KEY 未配置')); return; }
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) { onError(new Error('OPENAI_API_KEY 未配置')); return; }
+
+    const baseUrl = new URL(process.env.OPENAI_BASE_URL || 'http://localhost:9000');
+    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
     const body = JSON.stringify({
-      model: 'glm-4-flash-250414',
+      model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },
@@ -131,16 +134,20 @@ class AiService extends Service {
       stream: true,
     });
 
-    const req = https.request({
-      hostname: 'open.bigmodel.cn',
-      path: '/api/paas/v4/chat/completions',
+    const transport = baseUrl.protocol === 'https:' ? require('https') : http;
+    const req = transport.request({
+      hostname: baseUrl.hostname,
+      port: parseInt(baseUrl.port) || (baseUrl.protocol === 'https:' ? 443 : 80),
+      path: '/v1/chat/completions',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
     }, res => {
       let buffer = '';
+      let ended = false;
+      const finish = () => { if (!ended) { ended = true; onEnd(); } };
       res.on('data', chunk => {
         buffer += chunk.toString();
         const lines = buffer.split('\n');
@@ -149,7 +156,7 @@ class AiService extends Service {
           const trimmed = line.trim();
           if (!trimmed || !trimmed.startsWith('data:')) continue;
           const data = trimmed.slice(5).trim();
-          if (data === '[DONE]') { onEnd(); return; }
+          if (data === '[DONE]') { finish(); return; }
           try {
             const json = JSON.parse(data);
             const delta = json.choices?.[0]?.delta?.content;
@@ -157,7 +164,7 @@ class AiService extends Service {
           } catch (e) { /* 忽略解析异常 */ }
         }
       });
-      res.on('end', () => onEnd());
+      res.on('end', finish);
     });
     req.on('error', onError);
     req.write(body);

@@ -189,9 +189,7 @@ class RecordService extends Service {
       existing.point_income += dayPoint;
       existing.overtime_income += dayOvertime;
       existing.contract_income += dayContract;
-      existing.total = record.type === '点工'
-        ? existing.point_income + existing.overtime_income
-        : existing.contract_income;
+      existing.total = existing.point_income + existing.overtime_income + existing.contract_income;
       dailyIncomeMap.set(dateKey, existing);
     });
 
@@ -214,16 +212,7 @@ class RecordService extends Service {
     const range = this._calcDateRange(type, start_date, end_date);
     const Op = this.app.Sequelize.Op;
 
-    const records = await this.ctx.model.Record.findAll({
-      where: {
-        user_id: userId,
-        project: project_id,
-        date: { [Op.between]: [range.start, range.end] },
-      },
-      order: [['date', 'ASC']],
-    });
-
-    // 上一周期记录（环比）
+    // 计算上一周期范围
     const periodStart = new Date(range.start);
     const periodEnd = new Date(range.end);
     const daysDiff = Math.ceil((periodEnd - periodStart) / (1000 * 60 * 60 * 24));
@@ -231,19 +220,21 @@ class RecordService extends Service {
     const prevEnd = new Date(periodEnd);
     prevStart.setDate(prevStart.getDate() - daysDiff - 1);
     prevEnd.setDate(prevEnd.getDate() - daysDiff - 1);
+    const prevStartStr = this._formatDate(prevStart);
+    const prevEndStr = this._formatDate(prevEnd);
 
-    const prevRecords = await this.ctx.model.Record.findAll({
+    // 一次查询涵盖当前周期和上一周期
+    const allRecords = await this.ctx.model.Record.findAll({
       where: {
         user_id: userId,
         project: project_id,
-        date: {
-          [Op.between]: [
-            this._formatDate(prevStart),
-            this._formatDate(prevEnd),
-          ],
-        },
+        date: { [Op.between]: [prevStartStr, range.end] },
       },
+      order: [['date', 'ASC']],
     });
+
+    const records = allRecords.filter(r => r.date >= range.start && r.date <= range.end);
+    const prevRecords = allRecords.filter(r => r.date >= prevStartStr && r.date <= prevEndStr);
 
     let prevAmount = 0;
     prevRecords.forEach(r => { prevAmount += this._calcRecordIncome(r); });
@@ -278,17 +269,43 @@ class RecordService extends Service {
   }
 
   async getUserWorkStats(userId) {
-    const records = await this.ctx.model.Record.findAll({
-      where: { user_id: userId },
-      order: [['date', 'ASC']],
+    const { Sequelize } = this.app;
+    const Op = Sequelize.Op;
+
+    // 用 DB 聚合查询总收入和总记录数，避免全表加载到内存
+    const [pointRow] = await this.ctx.model.Record.findAll({
+      where: { user_id: userId, type: '点工' },
+      attributes: [
+        [Sequelize.fn('SUM', Sequelize.col('point_income')), 'sum_point'],
+        [Sequelize.fn('SUM', Sequelize.col('overtime_amount')), 'sum_overtime'],
+        [Sequelize.fn('COUNT', Sequelize.col('id')), 'cnt'],
+      ],
+      raw: true,
+    });
+    const [contractRow] = await this.ctx.model.Record.findAll({
+      where: { user_id: userId, type: '包工' },
+      attributes: [
+        [Sequelize.fn('SUM', Sequelize.col('amount')), 'sum_amount'],
+        [Sequelize.fn('COUNT', Sequelize.col('id')), 'cnt'],
+      ],
+      raw: true,
     });
 
-    let totalIncome = 0;
-    records.forEach(r => { totalIncome += this._calcRecordIncome(r); });
+    const totalIncome = (Number(pointRow?.sum_point) || 0)
+      + (Number(pointRow?.sum_overtime) || 0)
+      + (Number(contractRow?.sum_amount) || 0);
+    const totalRecordDays = (Number(pointRow?.cnt) || 0) + (Number(contractRow?.cnt) || 0);
 
-    const uniqueDates = [...new Set(records.map(r => r.date))]
-      .sort((a, b) => new Date(a) - new Date(b));
+    // 连续打卡天数只需查最近 90 天的日期，避免全表
+    const since = this._formatDate(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000));
+    const recentDates = await this.ctx.model.Record.findAll({
+      where: { user_id: userId, date: { [Op.gte]: since } },
+      attributes: [[Sequelize.fn('DISTINCT', Sequelize.col('date')), 'date']],
+      order: [['date', 'ASC']],
+      raw: true,
+    });
 
+    const uniqueDates = recentDates.map(r => r.date).sort();
     let consecutiveDays = 0, maxConsecutiveDays = 0, lastWorkDate = null;
     uniqueDates.forEach(date => {
       const current = new Date(date);
@@ -302,7 +319,6 @@ class RecordService extends Service {
       lastWorkDate = current;
     });
 
-    const totalRecordDays = records.length;
     return {
       total_record_days: totalRecordDays,
       total_income: Number(totalIncome.toFixed(2)),
