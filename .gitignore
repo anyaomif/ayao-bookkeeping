@@ -27,6 +27,7 @@ bookkeeping_uni/dist/
 .idea/
 .vscode/
 .hbuilderx/
+.claude/
 *.sw*
 *.un~
 .DS_Store
