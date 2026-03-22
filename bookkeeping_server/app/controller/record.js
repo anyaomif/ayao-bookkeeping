@@ -48,6 +48,12 @@ class RecordController extends Controller {
     const data = await ctx.service.record.getUserWorkStats(ctx.state.user.id);
     ctx.success(data);
   }
+
+  async getMultiStatistics() {
+    const { ctx } = this;
+    const data = await ctx.service.record.getMultiStatistics(ctx.request.body, ctx.state.user.id);
+    ctx.success(data);
+  }
 }
 
 module.exports = RecordController;

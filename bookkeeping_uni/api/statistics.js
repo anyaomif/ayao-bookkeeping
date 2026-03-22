@@ -5,5 +5,9 @@ export const statisticsApi = {
   // 获取统计数据
   getStatistics(params) {
     return http.post('/statistics', params)
-  }
+  },
+  // 多项目统计
+  getMultiStatistics(params) {
+    return http.post('/statistics/multi', params)
+  },
 }

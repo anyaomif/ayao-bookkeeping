@@ -117,5 +117,6 @@ module.exports = app => {
   router.delete('/api/records/:id', jwt, controller.record.destroy);
   router.get('/api/projects/:project_id/records', jwt, controller.record.getProjectRecords);
   router.post('/api/statistics', jwt, statisticsSchema, controller.record.getStatistics);
+  router.post('/api/statistics/multi', jwt, controller.record.getMultiStatistics);
   router.get('/api/user/work-stats', jwt, controller.record.getUserWorkStats);
 };

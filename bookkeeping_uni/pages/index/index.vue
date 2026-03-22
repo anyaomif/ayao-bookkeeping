@@ -4,14 +4,14 @@
 		<NavbarWrapper sticky>
 			<ay-title title="俺要记账" class="ay-title" :color="isDark ? '#f5f5f5' : '#333'">
 				<template #right>
-					<ProjectSelector v-model="currentProject" :projectList="projectList" @change="selectProject" />
+					<ProjectSelector v-model="currentProject" :projectList="projectList" :single="true" @change="selectProject" />
 				</template>
 			</ay-title>
 		</NavbarWrapper>
 
 		<!-- 添加v-if等待数据加载 -->
 		<template v-if="!isLoading">
-			<ay-calendar :start-date="currentProject.start_date" :end-date="nowDate" @date-selected="handleDateSelect">
+			<ay-calendar :start-date="activeProject.start_date" :end-date="nowDate" @date-selected="handleDateSelect">
 				<template v-slot:content="{date}">
 					<view v-for="(record, index) in recordList" :key="index">
 						<ay-tag v-if="formatDate(date?.date) === record?.date" class="tag" shape="round" font-size="16" bold
@@ -204,7 +204,8 @@
 	const selectDate = ref('')
 	const nowDate = ref(getNowDate())
 	const projectList = ref([])
-	const currentProject = ref({})
+	const currentProject = ref([])
+	const activeProject = computed(() => currentProject.value[0] || {})
 	const recordList = ref([])
 	const showDetailPopup = ref(false)
 	const currentDayRecord = ref(null)
@@ -310,7 +311,7 @@
 				}
 
 				// 统计基本工资（这里需要从项目中获取日薪）
-				const dailyWage = currentProject.value?.daily_wage || 0;
+				const dailyWage = activeProject.value?.daily_wage || 0;
 				monthlyStats.value.point.salary += dailyWage * parseFloat(record.work_days);
 
 			} else if (record.type === '包工') {
@@ -324,7 +325,7 @@
 	// 修改获取记工记录列表方法
 	const getRecordList = async () => {
 		try {
-			const res = await recordApi.getListByProject(currentProject.value.id)
+			const res = await recordApi.getListByProject(activeProject.value.id)
 			if (res.success) {
 				recordList.value = res.data.list;
 				calculateMonthlyStatistics();
@@ -370,14 +371,13 @@
 				return;
 			}
 
-			// 如果有缓存的项目，则使用缓存的项目
-			if (cachedProject) {
-				currentProject.value = cachedProject;
+			// 如果有缓存的项目，校验仍在列表中，否则回退到第一个
+			const matched = cachedProject && projectList.value.find(p => p.id === cachedProject.id)
+			if (matched) {
+				currentProject.value = [matched];
 			} else {
-				// 否则使用列表第一个项目
-				currentProject.value = projectList.value[0];
-				// 保存到缓存
-				uni.setStorageSync('current_project', currentProject.value);
+				currentProject.value = [projectList.value[0]];
+				uni.setStorageSync('current_project', projectList.value[0]);
 			}
 
 			// 设置初始日期
@@ -396,8 +396,9 @@
 	}
 
 	// 修改选择项目方法
-	const selectProject = async (project) => {
-		currentProject.value = project;
+	const selectProject = async (projects) => {
+		// projects is an Array from ProjectSelector
+		const project = projects[0] || {};
 
 		// 保存到缓存
 		uni.setStorageSync('current_project', project);
@@ -521,6 +522,17 @@
 			position: sticky;
 			top: var(--status-bar-height);
 			z-index: 1;
+		}
+
+		.title-right-slot {
+			display: flex;
+			align-items: center;
+			gap: 4rpx;
+		}
+
+		.double-arrow {
+			display: flex;
+			align-items: center;
 		}
 
 		.btns {

@@ -328,6 +328,103 @@ class RecordService extends Service {
       last_work_date: lastWorkDate ? lastWorkDate.toISOString().split('T')[0] : null,
     };
   }
+  async getMultiStatistics(body, userId) {
+    const { project_ids, type, start_date, end_date } = body;
+    const Op = this.app.Sequelize.Op;
+
+    // 查询用户所有项目
+    const allProjects = await this.ctx.model.Project.findAll({
+      where: { user_id: userId },
+      attributes: [ 'id', 'name' ],
+    });
+    if (!allProjects.length) return { total: { total_amount: 0, total_work_days: 0, average_daily_wage: 0 }, projects: [] };
+
+    // 确定目标项目
+    const targetProjects = (project_ids && project_ids.length)
+      ? allProjects.filter(p => project_ids.includes(p.id))
+      : allProjects;
+
+    const range = this._calcDateRange(type, start_date, end_date);
+    const targetIds = targetProjects.map(p => p.id);
+
+    const records = await this.ctx.model.Record.findAll({
+      where: {
+        user_id: userId,
+        project: { [Op.in]: targetIds },
+        date: { [Op.between]: [range.start, range.end] },
+      },
+      order: [['date', 'ASC']],
+    });
+
+    // 按项目分组聚合
+    const projectMap = new Map();
+    targetProjects.forEach(p => {
+      projectMap.set(p.id, {
+        project_id: p.id,
+        project_name: p.name,
+        total_amount: 0,
+        point_income: 0,
+        overtime_income: 0,
+        contract_income: 0,
+        total_work_days: 0,
+      });
+    });
+
+    records.forEach(r => {
+      const item = projectMap.get(r.project);
+      if (!item) return;
+      if (r.type === '点工') {
+        const pt = Number(r.point_income) || 0;
+        const ot = Number(r.overtime_amount) || 0;
+        item.point_income += pt;
+        item.overtime_income += ot;
+        item.total_amount += pt + ot;
+        item.total_work_days += Number(r.work_days) || 0;
+      } else {
+        const ct = Number(r.amount) || 0;
+        item.contract_income += ct;
+        item.total_amount += ct;
+      }
+    });
+
+    const projects = Array.from(projectMap.values())
+      .map(p => ({
+        ...p,
+        total_amount: Number(p.total_amount.toFixed(2)),
+        point_income: Number(p.point_income.toFixed(2)),
+        overtime_income: Number(p.overtime_income.toFixed(2)),
+        contract_income: Number(p.contract_income.toFixed(2)),
+      }))
+      .sort((a, b) => b.total_amount - a.total_amount);
+
+    const totalAmount = projects.reduce((s, p) => s + p.total_amount, 0);
+    const totalWorkDays = projects.reduce((s, p) => s + p.total_work_days, 0);
+
+    // 按日期聚合所有项目的收入
+    const dailyMap = new Map();
+    records.forEach(r => {
+      const date = r.date;
+      const income = r.type === '点工'
+        ? (Number(r.point_income) || 0) + (Number(r.overtime_amount) || 0)
+        : (Number(r.amount) || 0);
+      dailyMap.set(date, (dailyMap.get(date) || 0) + income);
+    });
+    const daily_income = Array.from(dailyMap.entries())
+      .map(([date, total_income]) => ({ date, total_income: Number(total_income.toFixed(2)) }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return {
+      total: {
+        total_amount: Number(totalAmount.toFixed(2)),
+        total_work_days: totalWorkDays,
+        average_daily_wage: totalWorkDays === 0 ? 0 : Number((totalAmount / totalWorkDays).toFixed(2)),
+      },
+      projects,
+      daily_income,
+    };
+  }
 }
+
+module.exports = RecordService;
 
 module.exports = RecordService;
